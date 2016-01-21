@@ -1,0 +1,245 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+
+<meta name="author" content="Paul Fultz II">
+
+<title>Quick Start - Boost.Fit</title>
+<link href="../css/boostbook.css" rel="stylesheet">
+<link href="../css/styles/github.css" rel="stylesheet">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../images/boost.png"></td>
+</tr></table>
+
+<hr>
+<div class="spirit-nav">
+<a accesskey="p"  href="../index.html"><img src="../images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../images/home.png" alt="Home"></a><a accesskey="n"  href="../overview/index.html"><img src="../images/next.png" alt="Next"></a>
+</div>
+
+<div class="chapter">
+
+
+<div class="toc">
+<dl class="toc">
+
+    
+        <dt><span class="section"><a href="#quick-start">Quick Start</a></span></dt>
+        <dd><dl>
+            
+                <dt><span class="section"><a href="#function-objects">Function Objects</a></span></dt>
+            
+                <dt><span class="section"><a href="#adaptors">Adaptors</a></span></dt>
+            
+                <dt><span class="section"><a href="#lambdas">Lambdas</a></span></dt>
+            
+                <dt><span class="section"><a href="#overloading">Overloading</a></span></dt>
+            
+                <dt><span class="section"><a href="#tuples">Tuples</a></span></dt>
+            
+                <dt><span class="section"><a href="#recursive">Recursive</a></span></dt>
+            
+                <dt><span class="section"><a href="#variadic">Variadic</a></span></dt>
+            
+        </dl></dd>
+    
+
+</dl>
+</div>
+
+
+
+<div class="section">
+<h1 id="quick-start">Quick Start</h1>
+<h2 id="function-objects">Function Objects</h2>
+<p>In C++, a function object is just a class that overrides the call operator like this:</p>
+<pre><code>// A sum function object
+struct sum_f
+{
+    template&lt;class T, class U&gt;
+    auto operator()(T x, U y) const
+    {
+        return x + y;
+    }
+};
+</code></pre>
+<p>There are few things to note about this. First, the call operator member function is always declared <code>const</code>, which is generally required to be used with Fit.(Note: The <a href="../mutable/index.html"><code>mutable_</code></a> adaptor can be used to make a mutable function object have a <code>const</code> call operator, but this should generally be avoided). Secondly, the <code>sum_f</code> class must be constructed first before it can be called:</p>
+<pre><code>auto three = sum_f()(1, 2);
+</code></pre>
+<p>We can make it behave like a regular function if we construct the class as a global variable. The Fit library provides <a href="../function/index.html"><code>BOOST_FIT_STATIC_FUNCTION</code></a> to properly initialize the the function object at compile-time to avoid the <a href="https://isocpp.org/wiki/faq/ctors#static-init-order">static initialization order fiasco</a> and possible ODR violations:</p>
+<pre><code>BOOST_FIT_STATIC_FUNCTION(sum) = sum_f();
+</code></pre>
+<h2 id="adaptors">Adaptors</h2>
+<p>Now we have defined the function as a function object, we can add new "enhancements" to the function. We could make the function pipable using the <a href="../pipable/index.html"><code>pipable</code></a> adaptor:</p>
+<pre><code>BOOST_FIT_STATIC_FUNCTION(sum) = pipable_adaptor&lt;sum_f&gt;();
+</code></pre>
+<p>This allows the parameters to piped into it, like this:</p>
+<pre><code>auto three = 1 | sum(2);
+</code></pre>
+<p>Or we could make it an infix named operator as well using the <a href="../infix/index.html"><code>infix</code></a> adaptor:</p>
+<pre><code>BOOST_FIT_STATIC_FUNCTION(sum) = infix_adaptor&lt;sum_f&gt;();
+</code></pre>
+<p>And it could be called like this:</p>
+<pre><code>auto three = 1 &lt;sum&gt; 2;
+</code></pre>
+<p>Additionally each of the adaptors have a corresponding function version without the <code>_adaptor</code> suffix. So we could pass <code>sum</code> as a variable to the adaptors to make new functions. So we can do things like partial application and function composition if we wanted to:</p>
+<pre><code>auto add_1 = partial(sum)(1);
+auto add_2 = compose(add_1, add_1);
+auto three = add_2(1);
+</code></pre>
+<h2 id="lambdas">Lambdas</h2>
+<p>Instead of writing function objects which can be a little verbose, we can write the functions as lambdas instead. However, by default lambdas cannot be statically initialized at compile time. So we can use the <a href="../lambda/index.html"><code>BOOST_FIT_STATIC_LAMBDA</code></a> to initialize them at compile time:</p>
+<pre><code>BOOST_FIT_STATIC_FUNCTION(sum) = BOOST_FIT_STATIC_LAMBDA(auto x, auto y)
+{
+    return x + y;
+};
+</code></pre>
+<p>And we can apply the same adaptors as well:</p>
+<pre><code>// Pipable sum
+BOOST_FIT_STATIC_FUNCTION(sum) = pipable(BOOST_FIT_STATIC_LAMBDA(auto x, auto y)
+{
+    return x + y;
+});
+</code></pre>
+<p>We can also use <a href="../lambda/index.html"><code>BOOST_FIT_STATIC_LAMBDA_FUNCTION</code></a> so we dont have to repeat <a href="../lambda/index.html"><code>BOOST_FIT_STATIC_LAMBDA</code></a> for adaptors, and it can help avoid possible ODR violations as well:</p>
+<pre><code>// Pipable sum
+BOOST_FIT_STATIC_LAMBDA_FUNCTION(sum) = pipable([](auto x, auto y)
+{
+    return x + y;
+});
+</code></pre>
+<p>As we will see, this can help make it cleaner when we are defining several lambdas, such as for overloading.</p>
+<h2 id="overloading">Overloading</h2>
+<p>Now, Fit provides two ways of doing overloading. The <a href="../match/index.html"><code>match</code></a> adaptor will call a function based on C++ overload resolution, which tries to find the best match, like this:</p>
+<pre><code>BOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = match(
+    [](int x)
+    {
+        std::cout &lt;&lt; "Integer: " &lt;&lt; x &lt;&lt; std::endl;
+    },
+    [](const std::string&amp; x)
+    {
+        std::cout &lt;&lt; "String: " &lt;&lt; x &lt;&lt; std::endl;
+    }
+);
+</code></pre>
+<p>However, when trying to do overloading involving something more generic, it can lead to ambiguities. So the <a href="../conditional/index.html"><code>conditional</code></a> adaptor will pick the first function that is callable. This allows ordering the functions based on which one is more important. Say we would like to write a <code>print</code> function that can print not only using <code>cout</code> but can also print the values in ranges. We could write something like this:</p>
+<pre><code>BOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = conditional(
+    [](const auto&amp; x) -&gt; decltype(std::cout &lt;&lt; x, void())
+    {
+        std::cout &lt;&lt; x &lt;&lt; std::endl;
+    },
+    [](const auto&amp; range)
+    {
+        for(const auto&amp; x:range) std::cout &lt;&lt; x &lt;&lt; std::endl;
+    }
+);
+</code></pre>
+<p>So the <code>-&gt; decltype(std::cout &lt;&lt; x, void())</code> will only make the function callable if <code>std::cout &lt;&lt; x</code> is callable. Then the <code>void()</code> is used to return <code>void</code> from the function. We can constrain the second overload as well, but we will need some helper function in order to call <code>std::begin</code> using ADL lookup:</p>
+<pre><code>namespace adl {
+
+using std::begin;
+
+template&lt;class R&gt;
+auto adl_begin(R&amp;&amp; r) -&gt; BOOST_FIT_RETURNS(begin(r));
+}
+
+BOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = conditional(
+    [](const auto&amp; x) -&gt; decltype(std::cout &lt;&lt; x, void())
+    {
+        std::cout &lt;&lt; x &lt;&lt; std::endl;
+    },
+    [](const auto&amp; range) -&gt; decltype(std::cout &lt;&lt; *adl::adl_begin(range), void())
+    {
+        for(const auto&amp; x:range) std::cout &lt;&lt; x &lt;&lt; std::endl;
+    }
+);
+</code></pre>
+<h2 id="tuples">Tuples</h2>
+<p>We could extend this to printing tuples as well. We will need to combine a couple of functions to make a <code>for_each_tuple</code>, which let us call a function for each element. First, the <a href="../by/index.html"><code>by</code></a> adaptor will let us apply a function to each argument passed in, and the <a href="../unpack/index.html"><code>unpack</code></a> adaptor will unpack the elements to a tuple and apply them to the argument:</p>
+<pre><code>BOOST_FIT_STATIC_LAMBDA_FUNCTION(for_each_tuple) = [](const auto&amp; sequence, auto f)
+{
+    return unpack(by(f))(sequence)
+};
+</code></pre>
+<p>So now we can add an overload for tuples:</p>
+<pre><code>BOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = conditional(
+    [](const auto&amp; x) -&gt; decltype(std::cout &lt;&lt; x, void())
+    {
+        std::cout &lt;&lt; x &lt;&lt; std::endl;
+    },
+    [](const auto&amp; range) -&gt; decltype(std::cout &lt;&lt; *adl::adl_begin(range), void())
+    {
+        for(const auto&amp; x:range) std::cout &lt;&lt; x &lt;&lt; std::endl;
+    },
+    [](const auto&amp; tuple) -&gt; decltype(for_each_tuple(tuple, identity), void())
+    {
+        return for_each_tuple(tuple, [](const auto&amp; x)
+        {
+            std::cout &lt;&lt; x &lt;&lt; std::endl;
+        });
+    }
+);
+</code></pre>
+<p>Since we can't use a lambda inside of <code>decltype</code> we just put <a href="../identity/index.html"><code>identity</code></a> instead.</p>
+<h2 id="recursive">Recursive</h2>
+<p>Even though we are using lambdas, we can easily make this recursive using the <a href="../fix/index.html"><code>fix</code></a> adaptor. This implements a fix point combinator, which passes the function(ie itself) in as the first argument, so we could write this:</p>
+<pre><code>BOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = fix(conditional(
+    [](auto, const auto&amp; x) -&gt; decltype(std::cout &lt;&lt; x, void())
+    {
+        std::cout &lt;&lt; x &lt;&lt; std::endl;
+    },
+    [](auto self, const auto&amp; range) -&gt; decltype(self(*adl::adl_begin(range)), void())
+    {
+        for(const auto&amp; x:range) self(x);
+    },
+    [](auto self, const auto&amp; tuple) -&gt; decltype(for_each_tuple(tuple, self), void())
+    {
+        return for_each_tuple(tuple, self);
+    }
+));
+</code></pre>
+<h2 id="variadic">Variadic</h2>
+<p>We can also make this <code>print</code> function varidiac, so it prints every argument passed into it. We just rename our original <code>print</code> function to <code>simple_print</code>:</p>
+<pre><code>BOOST_FIT_STATIC_LAMBDA_FUNCTION(simple_print) = fix(conditional(
+    [](auto, const auto&amp; x) -&gt; decltype(std::cout &lt;&lt; x, void())
+    {
+        std::cout &lt;&lt; x &lt;&lt; std::endl;
+    },
+    [](auto self, const auto&amp; range) -&gt; decltype(self(*adl::adl_begin(range)), void())
+    {
+        for(const auto&amp; x:range) self(x);
+    },
+    [](auto self, const auto&amp; tuple) -&gt; decltype(for_each_tuple(tuple, self), void())
+    {
+        return for_each_tuple(tuple, self);
+    }
+));
+</code></pre>
+<p>And then apply the <a href="../by/index.html"><code>by</code></a> adaptor to <code>simple_print</code>:</p>
+<pre><code>BOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = by(simple_print);
+</code></pre>
+</div>
+
+<script src="../js/highlight.pack.js"></script>
+<script>
+hljs.configure({languages:['cpp']});
+hljs.initHighlightingOnLoad();
+</script>
+<script src="../js/configure.js"></script>
+
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2014 Paul Fultz II
+      <p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+
+<meta name="author" content="Paul Fultz II">
+
+<title>alias - Boost.Fit</title>
+<link href="../css/boostbook.css" rel="stylesheet">
+<link href="../css/styles/github.css" rel="stylesheet">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../images/boost.png"></td>
+</tr></table>
+
+<hr>
+<div class="spirit-nav">
+<a accesskey="p"  href="../placeholders/index.html"><img src="../images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../images/home.png" alt="Home"></a><a accesskey="n"  href="../apply/index.html"><img src="../images/next.png" alt="Next"></a>
+</div>
+
+<div class="chapter">
+
+
+<div class="toc">
+<dl class="toc">
+
+    
+        <dt><span class="section"><a href="#alias">alias</a></span></dt>
+        <dd><dl>
+            
+                <dt><span class="section"><a href="#header">Header</a></span></dt>
+            
+                <dt><span class="section"><a href="#description">Description</a></span></dt>
+            
+                <dt><span class="section"><a href="#synopsis">Synopsis</a></span></dt>
+            
+        </dl></dd>
+    
+
+</dl>
+</div>
+
+
+
+<div class="section">
+<h1 id="alias">alias</h1>
+<h2 id="header">Header</h2>
+<pre><code>#include &lt;boost/fit/alias.hpp&gt;
+</code></pre>
+<h2 id="description">Description</h2>
+<p>The <code>alias</code> class wraps a type with a new type that can be tagged by the
+user. There are three different ways the value can be stored: as a member
+variable, by inheritance, or as a static member variable. The value can
+be retrieved uniformily using the <code>alias_value</code> function.</p>
+<h2 id="synopsis">Synopsis</h2>
+<pre><code>// Alias the type using a member variable
+template&lt;class T, class Tag=void&gt;
+class alias;
+
+// Alias the type by inheriting
+template&lt;class T, class Tag=void&gt;
+class alias_inherit;
+
+// Alias the type using a static variable
+template&lt;class T, class Tag=void&gt;
+class alias_static;
+
+// Retrieve tag from alias
+template&lt;class Alias&gt;
+class alias_tag;
+
+// Check if type has a certian tag
+template&lt;class T, class Tag&gt;
+class has_tag;
+
+// Retrieve value from alias
+template&lt;class Alias&gt;
+constexpr auto alias_value(Alias&amp;&amp;);
+</code></pre>
+</div>
+
+<script src="../js/highlight.pack.js"></script>
+<script>
+hljs.configure({languages:['cpp']});
+hljs.initHighlightingOnLoad();
+</script>
+<script src="../js/configure.js"></script>
+
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2014 Paul Fultz II
+      <p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+
+</div>
+</body>
+</html>

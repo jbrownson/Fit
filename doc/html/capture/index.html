@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+
+<meta name="author" content="Paul Fultz II">
+
+<title>capture - Boost.Fit</title>
+<link href="../css/boostbook.css" rel="stylesheet">
+<link href="../css/styles/github.css" rel="stylesheet">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../images/boost.png"></td>
+</tr></table>
+
+<hr>
+<div class="spirit-nav">
+<a accesskey="p"  href="../unpack/index.html"><img src="../images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../images/home.png" alt="Home"></a><a accesskey="n"  href="../if/index.html"><img src="../images/next.png" alt="Next"></a>
+</div>
+
+<div class="chapter">
+
+
+<div class="toc">
+<dl class="toc">
+
+    
+        <dt><span class="section"><a href="#capture">capture</a></span></dt>
+        <dd><dl>
+            
+                <dt><span class="section"><a href="#header">Header</a></span></dt>
+            
+                <dt><span class="section"><a href="#description">Description</a></span></dt>
+            
+                <dt><span class="section"><a href="#synopsis">Synopsis</a></span></dt>
+            
+                <dt><span class="section"><a href="#semantics">Semantics</a></span></dt>
+            
+                <dt><span class="section"><a href="#example">Example</a></span></dt>
+            
+        </dl></dd>
+    
+
+</dl>
+</div>
+
+
+
+<div class="section">
+<h1 id="capture">capture</h1>
+<h2 id="header">Header</h2>
+<pre><code>#include &lt;boost/fit/capture.hpp&gt;
+</code></pre>
+<h2 id="description">Description</h2>
+<p>The <code>capture</code> function decorator is used to capture values in a function.
+It provides more flexibility in capturing than the lambda capture list in
+C++. It provides a way to do move and perfect capturing. The values
+captured are prepended to the argument list of the function that will be
+called.</p>
+<h2 id="synopsis">Synopsis</h2>
+<pre><code>// Capture lvalues by reference and rvalues by value.
+template&lt;class... Ts&gt;
+constexpr auto capture(Ts&amp;&amp;... xs);
+
+// Capture lvalues by reference and rvalue reference by reference
+template&lt;class... Ts&gt;
+constexpr auto capture_forward(Ts&amp;&amp;... xs);
+
+// Capture by decaying each value
+template&lt;class... Ts&gt;
+constexpr auto capture_decay(Ts&amp;&amp;... xs);
+</code></pre>
+<h2 id="semantics">Semantics</h2>
+<pre><code>assert(capture(xs...)(f)(ys...) == f(xs..., ys...));
+</code></pre>
+<h2 id="example">Example</h2>
+<pre><code>struct sum_f
+{
+    template&lt;class T, class U&gt;
+    T operator()(T x, U y) const
+    {
+        return x+y;
+    }
+};
+auto add_one = boost::fit::capture(1)(sum_f());
+assert(add_one(2) == 3);
+</code></pre>
+</div>
+
+<script src="../js/highlight.pack.js"></script>
+<script>
+hljs.configure({languages:['cpp']});
+hljs.initHighlightingOnLoad();
+</script>
+<script src="../js/configure.js"></script>
+
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2014 Paul Fultz II
+      <p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+
+</div>
+</body>
+</html>

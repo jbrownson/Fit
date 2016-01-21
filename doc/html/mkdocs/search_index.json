@@ -1,0 +1,1954 @@
+{
+    "docs": [
+        {
+            "location": "/index.html", 
+            "text": "Introduction\n\n\nFit is a header-only C++11/C++14 library that provides utilities for functions and function objects. \n\n\nFit is:\n\n\n\n\nModern: Fit takes advantages of modern C++11/C++14 features. It support both \nconstexpr\n initialization and \nconstexpr\n evaluation of functions. It takes advantage of type deduction, varidiac templates, and perfect forwarding to provide a simple and modern interface. \n\n\nRelevant: Fit provides utilities for functions and does not try to implement a functional language in C++. As such, Fit solves many problems relevant to C++ programmers, including initialization of function objects and lambdas, overloading with ordering, improved return type deduction, and much more.\n\n\nLightweight: Fit builds simple lightweight abstraction on top of function objects. It does not require subscribing to an entire framework. Just use the parts you need.\n\n\n\n\nFit is divided into three components:\n\n\n\n\nFunction Adaptors and Decorators: These enhance functions with additional capability.\n\n\nFunctions: These return functions that achieve a specific purpose.\n\n\nUtilities: These are general utilities that are useful when defining or using functions\n\n\n\n\nGithub: \nhttps://github.com/pfultz2/Fit/tree/boost\n\n\nDocumentation: \nhttp://pfultz2.github.io/Fit/doc/html/", 
+            "title": "Home"
+        }, 
+        {
+            "location": "/index.html#introduction", 
+            "text": "Fit is a header-only C++11/C++14 library that provides utilities for functions and function objects.   Fit is:   Modern: Fit takes advantages of modern C++11/C++14 features. It support both  constexpr  initialization and  constexpr  evaluation of functions. It takes advantage of type deduction, varidiac templates, and perfect forwarding to provide a simple and modern interface.   Relevant: Fit provides utilities for functions and does not try to implement a functional language in C++. As such, Fit solves many problems relevant to C++ programmers, including initialization of function objects and lambdas, overloading with ordering, improved return type deduction, and much more.  Lightweight: Fit builds simple lightweight abstraction on top of function objects. It does not require subscribing to an entire framework. Just use the parts you need.   Fit is divided into three components:   Function Adaptors and Decorators: These enhance functions with additional capability.  Functions: These return functions that achieve a specific purpose.  Utilities: These are general utilities that are useful when defining or using functions   Github:  https://github.com/pfultz2/Fit/tree/boost  Documentation:  http://pfultz2.github.io/Fit/doc/html/", 
+            "title": "Introduction"
+        }, 
+        {
+            "location": "/quickstart/index.html", 
+            "text": "Quick Start\n\n\nFunction Objects\n\n\nIn C++, a function object is just a class that overrides the call operator like this:\n\n\n// A sum function object\nstruct sum_f\n{\n    template\nclass T, class U\n\n    auto operator()(T x, U y) const\n    {\n        return x + y;\n    }\n};\n\n\n\nThere are few things to note about this. First, the call operator member function is always declared \nconst\n, which is generally required to be used with Fit.(Note: The \nmutable_\n adaptor can be used to make a mutable function object have a \nconst\n call operator, but this should generally be avoided). Secondly, the \nsum_f\n class must be constructed first before it can be called:\n\n\nauto three = sum_f()(1, 2);\n\n\n\nWe can make it behave like a regular function if we construct the class as a global variable. The Fit library provides \nBOOST_FIT_STATIC_FUNCTION\n to properly initialize the the function object at compile-time to avoid the \nstatic initialization order fiasco\n and possible ODR violations:\n\n\nBOOST_FIT_STATIC_FUNCTION(sum) = sum_f();\n\n\n\nAdaptors\n\n\nNow we have defined the function as a function object, we can add new \"enhancements\" to the function. We could make the function pipable using the \npipable\n adaptor:\n\n\nBOOST_FIT_STATIC_FUNCTION(sum) = pipable_adaptor\nsum_f\n();\n\n\n\nThis allows the parameters to piped into it, like this:\n\n\nauto three = 1 | sum(2);\n\n\n\nOr we could make it an infix named operator as well using the \ninfix\n adaptor:\n\n\nBOOST_FIT_STATIC_FUNCTION(sum) = infix_adaptor\nsum_f\n();\n\n\n\nAnd it could be called like this:\n\n\nauto three = 1 \nsum\n 2;\n\n\n\nAdditionally each of the adaptors have a corresponding function version without the \n_adaptor\n suffix. So we could pass \nsum\n as a variable to the adaptors to make new functions. So we can do things like partial application and function composition if we wanted to:\n\n\nauto add_1 = partial(sum)(1);\nauto add_2 = compose(add_1, add_1);\nauto three = add_2(1);\n\n\n\nLambdas\n\n\nInstead of writing function objects which can be a little verbose, we can write the functions as lambdas instead. However, by default lambdas cannot be statically initialized at compile time. So we can use the \nBOOST_FIT_STATIC_LAMBDA\n to initialize them at compile time:\n\n\nBOOST_FIT_STATIC_FUNCTION(sum) = BOOST_FIT_STATIC_LAMBDA(auto x, auto y)\n{\n    return x + y;\n};\n\n\n\nAnd we can apply the same adaptors as well:\n\n\n// Pipable sum\nBOOST_FIT_STATIC_FUNCTION(sum) = pipable(BOOST_FIT_STATIC_LAMBDA(auto x, auto y)\n{\n    return x + y;\n});\n\n\n\nWe can also use \nBOOST_FIT_STATIC_LAMBDA_FUNCTION\n so we dont have to repeat \nBOOST_FIT_STATIC_LAMBDA\n for adaptors, and it can help avoid possible ODR violations as well:\n\n\n// Pipable sum\nBOOST_FIT_STATIC_LAMBDA_FUNCTION(sum) = pipable([](auto x, auto y)\n{\n    return x + y;\n});\n\n\n\nAs we will see, this can help make it cleaner when we are defining several lambdas, such as for overloading.\n\n\nOverloading\n\n\nNow, Fit provides two ways of doing overloading. The \nmatch\n adaptor will call a function based on C++ overload resolution, which tries to find the best match, like this:\n\n\nBOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = match(\n    [](int x)\n    {\n        std::cout \n \"Integer: \" \n x \n std::endl;\n    },\n    [](const std::string\n x)\n    {\n        std::cout \n \"String: \" \n x \n std::endl;\n    }\n);\n\n\n\nHowever, when trying to do overloading involving something more generic, it can lead to ambiguities. So the \nconditional\n adaptor will pick the first function that is callable. This allows ordering the functions based on which one is more important. Say we would like to write a \nprint\n function that can print not only using \ncout\n but can also print the values in ranges. We could write something like this:\n\n\nBOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = conditional(\n    [](const auto\n x) -\n decltype(std::cout \n x, void())\n    {\n        std::cout \n x \n std::endl;\n    },\n    [](const auto\n range)\n    {\n        for(const auto\n x:range) std::cout \n x \n std::endl;\n    }\n);\n\n\n\nSo the \n-\n decltype(std::cout \n x, void())\n will only make the function callable if \nstd::cout \n x\n is callable. Then the \nvoid()\n is used to return \nvoid\n from the function. We can constrain the second overload as well, but we will need some helper function in order to call \nstd::begin\n using ADL lookup:\n\n\nnamespace adl {\n\nusing std::begin;\n\ntemplate\nclass R\n\nauto adl_begin(R\n r) -\n BOOST_FIT_RETURNS(begin(r));\n}\n\nBOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = conditional(\n    [](const auto\n x) -\n decltype(std::cout \n x, void())\n    {\n        std::cout \n x \n std::endl;\n    },\n    [](const auto\n range) -\n decltype(std::cout \n *adl::adl_begin(range), void())\n    {\n        for(const auto\n x:range) std::cout \n x \n std::endl;\n    }\n);\n\n\n\nTuples\n\n\nWe could extend this to printing tuples as well. We will need to combine a couple of functions to make a \nfor_each_tuple\n, which let us call a function for each element. First, the \nby\n adaptor will let us apply a function to each argument passed in, and the \nunpack\n adaptor will unpack the elements to a tuple and apply them to the argument:\n\n\nBOOST_FIT_STATIC_LAMBDA_FUNCTION(for_each_tuple) = [](const auto\n sequence, auto f)\n{\n    return unpack(by(f))(sequence)\n};\n\n\n\nSo now we can add an overload for tuples:\n\n\nBOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = conditional(\n    [](const auto\n x) -\n decltype(std::cout \n x, void())\n    {\n        std::cout \n x \n std::endl;\n    },\n    [](const auto\n range) -\n decltype(std::cout \n *adl::adl_begin(range), void())\n    {\n        for(const auto\n x:range) std::cout \n x \n std::endl;\n    },\n    [](const auto\n tuple) -\n decltype(for_each_tuple(tuple, identity), void())\n    {\n        return for_each_tuple(tuple, [](const auto\n x)\n        {\n            std::cout \n x \n std::endl;\n        });\n    }\n);\n\n\n\nSince we can't use a lambda inside of \ndecltype\n we just put \nidentity\n instead.\n\n\nRecursive\n\n\nEven though we are using lambdas, we can easily make this recursive using the \nfix\n adaptor. This implements a fix point combinator, which passes the function(ie itself) in as the first argument, so we could write this:\n\n\nBOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = fix(conditional(\n    [](auto, const auto\n x) -\n decltype(std::cout \n x, void())\n    {\n        std::cout \n x \n std::endl;\n    },\n    [](auto self, const auto\n range) -\n decltype(self(*adl::adl_begin(range)), void())\n    {\n        for(const auto\n x:range) self(x);\n    },\n    [](auto self, const auto\n tuple) -\n decltype(for_each_tuple(tuple, self), void())\n    {\n        return for_each_tuple(tuple, self);\n    }\n));\n\n\n\nVariadic\n\n\nWe can also make this \nprint\n function varidiac, so it prints every argument passed into it. We just rename our original \nprint\n function to \nsimple_print\n:\n\n\nBOOST_FIT_STATIC_LAMBDA_FUNCTION(simple_print) = fix(conditional(\n    [](auto, const auto\n x) -\n decltype(std::cout \n x, void())\n    {\n        std::cout \n x \n std::endl;\n    },\n    [](auto self, const auto\n range) -\n decltype(self(*adl::adl_begin(range)), void())\n    {\n        for(const auto\n x:range) self(x);\n    },\n    [](auto self, const auto\n tuple) -\n decltype(for_each_tuple(tuple, self), void())\n    {\n        return for_each_tuple(tuple, self);\n    }\n));\n\n\n\nAnd then apply the \nby\n adaptor to \nsimple_print\n:\n\n\nBOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = by(simple_print);", 
+            "title": "Quick Start"
+        }, 
+        {
+            "location": "/quickstart/index.html#quick-start", 
+            "text": "", 
+            "title": "Quick Start"
+        }, 
+        {
+            "location": "/quickstart/index.html#function-objects", 
+            "text": "In C++, a function object is just a class that overrides the call operator like this:  // A sum function object\nstruct sum_f\n{\n    template class T, class U \n    auto operator()(T x, U y) const\n    {\n        return x + y;\n    }\n};  There are few things to note about this. First, the call operator member function is always declared  const , which is generally required to be used with Fit.(Note: The  mutable_  adaptor can be used to make a mutable function object have a  const  call operator, but this should generally be avoided). Secondly, the  sum_f  class must be constructed first before it can be called:  auto three = sum_f()(1, 2);  We can make it behave like a regular function if we construct the class as a global variable. The Fit library provides  BOOST_FIT_STATIC_FUNCTION  to properly initialize the the function object at compile-time to avoid the  static initialization order fiasco  and possible ODR violations:  BOOST_FIT_STATIC_FUNCTION(sum) = sum_f();", 
+            "title": "Function Objects"
+        }, 
+        {
+            "location": "/quickstart/index.html#adaptors", 
+            "text": "Now we have defined the function as a function object, we can add new \"enhancements\" to the function. We could make the function pipable using the  pipable  adaptor:  BOOST_FIT_STATIC_FUNCTION(sum) = pipable_adaptor sum_f ();  This allows the parameters to piped into it, like this:  auto three = 1 | sum(2);  Or we could make it an infix named operator as well using the  infix  adaptor:  BOOST_FIT_STATIC_FUNCTION(sum) = infix_adaptor sum_f ();  And it could be called like this:  auto three = 1  sum  2;  Additionally each of the adaptors have a corresponding function version without the  _adaptor  suffix. So we could pass  sum  as a variable to the adaptors to make new functions. So we can do things like partial application and function composition if we wanted to:  auto add_1 = partial(sum)(1);\nauto add_2 = compose(add_1, add_1);\nauto three = add_2(1);", 
+            "title": "Adaptors"
+        }, 
+        {
+            "location": "/quickstart/index.html#lambdas", 
+            "text": "Instead of writing function objects which can be a little verbose, we can write the functions as lambdas instead. However, by default lambdas cannot be statically initialized at compile time. So we can use the  BOOST_FIT_STATIC_LAMBDA  to initialize them at compile time:  BOOST_FIT_STATIC_FUNCTION(sum) = BOOST_FIT_STATIC_LAMBDA(auto x, auto y)\n{\n    return x + y;\n};  And we can apply the same adaptors as well:  // Pipable sum\nBOOST_FIT_STATIC_FUNCTION(sum) = pipable(BOOST_FIT_STATIC_LAMBDA(auto x, auto y)\n{\n    return x + y;\n});  We can also use  BOOST_FIT_STATIC_LAMBDA_FUNCTION  so we dont have to repeat  BOOST_FIT_STATIC_LAMBDA  for adaptors, and it can help avoid possible ODR violations as well:  // Pipable sum\nBOOST_FIT_STATIC_LAMBDA_FUNCTION(sum) = pipable([](auto x, auto y)\n{\n    return x + y;\n});  As we will see, this can help make it cleaner when we are defining several lambdas, such as for overloading.", 
+            "title": "Lambdas"
+        }, 
+        {
+            "location": "/quickstart/index.html#overloading", 
+            "text": "Now, Fit provides two ways of doing overloading. The  match  adaptor will call a function based on C++ overload resolution, which tries to find the best match, like this:  BOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = match(\n    [](int x)\n    {\n        std::cout   \"Integer: \"   x   std::endl;\n    },\n    [](const std::string  x)\n    {\n        std::cout   \"String: \"   x   std::endl;\n    }\n);  However, when trying to do overloading involving something more generic, it can lead to ambiguities. So the  conditional  adaptor will pick the first function that is callable. This allows ordering the functions based on which one is more important. Say we would like to write a  print  function that can print not only using  cout  but can also print the values in ranges. We could write something like this:  BOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = conditional(\n    [](const auto  x) -  decltype(std::cout   x, void())\n    {\n        std::cout   x   std::endl;\n    },\n    [](const auto  range)\n    {\n        for(const auto  x:range) std::cout   x   std::endl;\n    }\n);  So the  -  decltype(std::cout   x, void())  will only make the function callable if  std::cout   x  is callable. Then the  void()  is used to return  void  from the function. We can constrain the second overload as well, but we will need some helper function in order to call  std::begin  using ADL lookup:  namespace adl {\n\nusing std::begin;\n\ntemplate class R \nauto adl_begin(R  r) -  BOOST_FIT_RETURNS(begin(r));\n}\n\nBOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = conditional(\n    [](const auto  x) -  decltype(std::cout   x, void())\n    {\n        std::cout   x   std::endl;\n    },\n    [](const auto  range) -  decltype(std::cout   *adl::adl_begin(range), void())\n    {\n        for(const auto  x:range) std::cout   x   std::endl;\n    }\n);", 
+            "title": "Overloading"
+        }, 
+        {
+            "location": "/quickstart/index.html#tuples", 
+            "text": "We could extend this to printing tuples as well. We will need to combine a couple of functions to make a  for_each_tuple , which let us call a function for each element. First, the  by  adaptor will let us apply a function to each argument passed in, and the  unpack  adaptor will unpack the elements to a tuple and apply them to the argument:  BOOST_FIT_STATIC_LAMBDA_FUNCTION(for_each_tuple) = [](const auto  sequence, auto f)\n{\n    return unpack(by(f))(sequence)\n};  So now we can add an overload for tuples:  BOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = conditional(\n    [](const auto  x) -  decltype(std::cout   x, void())\n    {\n        std::cout   x   std::endl;\n    },\n    [](const auto  range) -  decltype(std::cout   *adl::adl_begin(range), void())\n    {\n        for(const auto  x:range) std::cout   x   std::endl;\n    },\n    [](const auto  tuple) -  decltype(for_each_tuple(tuple, identity), void())\n    {\n        return for_each_tuple(tuple, [](const auto  x)\n        {\n            std::cout   x   std::endl;\n        });\n    }\n);  Since we can't use a lambda inside of  decltype  we just put  identity  instead.", 
+            "title": "Tuples"
+        }, 
+        {
+            "location": "/quickstart/index.html#recursive", 
+            "text": "Even though we are using lambdas, we can easily make this recursive using the  fix  adaptor. This implements a fix point combinator, which passes the function(ie itself) in as the first argument, so we could write this:  BOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = fix(conditional(\n    [](auto, const auto  x) -  decltype(std::cout   x, void())\n    {\n        std::cout   x   std::endl;\n    },\n    [](auto self, const auto  range) -  decltype(self(*adl::adl_begin(range)), void())\n    {\n        for(const auto  x:range) self(x);\n    },\n    [](auto self, const auto  tuple) -  decltype(for_each_tuple(tuple, self), void())\n    {\n        return for_each_tuple(tuple, self);\n    }\n));", 
+            "title": "Recursive"
+        }, 
+        {
+            "location": "/quickstart/index.html#variadic", 
+            "text": "We can also make this  print  function varidiac, so it prints every argument passed into it. We just rename our original  print  function to  simple_print :  BOOST_FIT_STATIC_LAMBDA_FUNCTION(simple_print) = fix(conditional(\n    [](auto, const auto  x) -  decltype(std::cout   x, void())\n    {\n        std::cout   x   std::endl;\n    },\n    [](auto self, const auto  range) -  decltype(self(*adl::adl_begin(range)), void())\n    {\n        for(const auto  x:range) self(x);\n    },\n    [](auto self, const auto  tuple) -  decltype(for_each_tuple(tuple, self), void())\n    {\n        return for_each_tuple(tuple, self);\n    }\n));  And then apply the  by  adaptor to  simple_print :  BOOST_FIT_STATIC_LAMBDA_FUNCTION(print) = by(simple_print);", 
+            "title": "Variadic"
+        }, 
+        {
+            "location": "/overview/index.html", 
+            "text": "Function Adaptor\n\n\nA function adaptor takes a function(or functions) and returns a new function with enhanced capability. Each adaptor has a functional form with a corresponding class with \n_adaptor\n appended to it:\n\n\ntemplate\nclass... Fs\n\nFunctionAdaptor_adaptor\nFs...\n FunctionAdaptor(Fs...);\n\n\n\n\nBoth the functional form and the class form can be used to construct the adaptor.\n\n\nStatic Function Adaptor\n\n\nA static function adaptor is a function adaptor that doesn't have a functional form. It is only a class. It has an additional requirement that the function is \nDefaultConstructible\n:\n\n\ntemplate\nclass... Fs\n\nclass StaticFunctionAdaptor;\n\n\n\n\nDecorator\n\n\nA decorator is a function that returns a function adaptor. The function adaptor may be an unspecified or private type.\n\n\ntemplate\nclass... Ts\n\nFunctionAdaptor Decorator(Ts...);\n\n\n\n\nSemantics\n\n\nSome parts of the documentation provides the meaning(or equivalence) of an expression. Here is a guide of those symbols:\n\n\n\n\nf\n, \ng\n, \nfs\n, \ngs\n, \np\n are functions\n\n\nx\n, \ny\n, \nxs\n, \nys\n are parameters to a function\n\n\nT\n represents some type\n\n\n...\n are parameter packs and represent varidiac parameters\n\n\n\n\nSignatures\n\n\nAll the functions are global function objects except where an explicit template parameter is required. However, the documentation still shows the traditional signature since it is much clearer. So instead of writing this:\n\n\nstruct if_f\n{\n    template\nclass IntegralConstant\n\n    constexpr auto operator()(IntegralConstant) const;\n};\nconst constexpr if_f if_ = {};\n\n\n\n\nThe direct function signature is written even though it is actually declared like above:\n\n\ntemplate\nclass IntegralConstant\n\nconstexpr auto if_(IntegralConstant);\n\n\n\n\nIts usage is the same except it has the extra benefit that the function can be directly passed to another function.", 
+            "title": "Overview"
+        }, 
+        {
+            "location": "/overview/index.html#function-adaptor", 
+            "text": "A function adaptor takes a function(or functions) and returns a new function with enhanced capability. Each adaptor has a functional form with a corresponding class with  _adaptor  appended to it:  template class... Fs \nFunctionAdaptor_adaptor Fs...  FunctionAdaptor(Fs...);  Both the functional form and the class form can be used to construct the adaptor.", 
+            "title": "Function Adaptor"
+        }, 
+        {
+            "location": "/overview/index.html#static-function-adaptor", 
+            "text": "A static function adaptor is a function adaptor that doesn't have a functional form. It is only a class. It has an additional requirement that the function is  DefaultConstructible :  template class... Fs \nclass StaticFunctionAdaptor;", 
+            "title": "Static Function Adaptor"
+        }, 
+        {
+            "location": "/overview/index.html#decorator", 
+            "text": "A decorator is a function that returns a function adaptor. The function adaptor may be an unspecified or private type.  template class... Ts \nFunctionAdaptor Decorator(Ts...);", 
+            "title": "Decorator"
+        }, 
+        {
+            "location": "/overview/index.html#semantics", 
+            "text": "Some parts of the documentation provides the meaning(or equivalence) of an expression. Here is a guide of those symbols:   f ,  g ,  fs ,  gs ,  p  are functions  x ,  y ,  xs ,  ys  are parameters to a function  T  represents some type  ...  are parameter packs and represent varidiac parameters", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/overview/index.html#signatures", 
+            "text": "All the functions are global function objects except where an explicit template parameter is required. However, the documentation still shows the traditional signature since it is much clearer. So instead of writing this:  struct if_f\n{\n    template class IntegralConstant \n    constexpr auto operator()(IntegralConstant) const;\n};\nconst constexpr if_f if_ = {};  The direct function signature is written even though it is actually declared like above:  template class IntegralConstant \nconstexpr auto if_(IntegralConstant);  Its usage is the same except it has the extra benefit that the function can be directly passed to another function.", 
+            "title": "Signatures"
+        }, 
+        {
+            "location": "/concepts/index.html", 
+            "text": "Basic Concepts\n\n\nFunctionObject\n\n\nIs an object with a \nconst\n call operator:\n\n\nconcept FunctionObject\n{\n    template\nclass... Ts\n\n    auto operator()(Ts\n...) const;\n};\n\n\n\n\nRequirements:\n\n\nThe type \nF\n satisfies \nFunctionObject\n if\n\n\n\n\nThe type \nF\n satisfies \nstd::is_object\n, and \n\n\n\n\nGiven\n\n\n\n\nf\n, an object of type \nconst F\n\n\nargs...\n, suitable argument list, which may be empty \n\n\n\n\n\n\n\n\n\n\nExpression\n\n\nRequirements\n\n\n\n\n\n\n\n\n\n\nf(args...)\n\n\nperforms a function call\n\n\n\n\n\n\n\n\nNullaryFunctionObject\n\n\nIs an object with a \nconst\n call operator that accepts no parameters:\n\n\nconcept NullaryFunctionObject\n{\n    auto operator()() const;\n};\n\n\n\n\nRequirements:\n\n\n\n\nFunctionObject\n\n\n\n\nGiven\n\n\n\n\nf\n, an object of type \nconst F\n\n\n\n\n\n\n\n\n\n\nExpression\n\n\nRequirements\n\n\n\n\n\n\n\n\n\n\nf()\n\n\nperforms a function call\n\n\n\n\n\n\n\n\nUnaryFunctionObject\n\n\nIs an object with a \nconst\n call operator that accepts one parameter:\n\n\nconcept UnaryFunctionObject\n{\n    template\nclass T\n\n    auto operator()(T\n) const;\n};\n\n\n\n\nRequirements:\n\n\n\n\nFunctionObject\n\n\n\n\nGiven\n\n\n\n\nf\n, an object of type \nconst F\n\n\narg\n, a single argument\n\n\n\n\n\n\n\n\n\n\nExpression\n\n\nRequirements\n\n\n\n\n\n\n\n\n\n\nf(arg)\n\n\nperforms a function call\n\n\n\n\n\n\n\n\nBinaryFunctionObject\n\n\nIs an object with a \nconst\n call operator that accepts two parameter:\n\n\nconcept UnaryFunctionObject\n{\n    template\nclass T, class U\n\n    auto operator()(T\n, U\n) const;\n};\n\n\n\n\nRequirements:\n\n\n\n\nFunctionObject\n\n\n\n\nGiven\n\n\n\n\nf\n, an object of type \nconst F\n\n\narg1\n, a single argument\n\n\narg2\n, a single argument\n\n\n\n\n\n\n\n\n\n\nExpression\n\n\nRequirements\n\n\n\n\n\n\n\n\n\n\nf(arg1, arg2)\n\n\nperforms a function call\n\n\n\n\n\n\n\n\nMutableFunctionObject\n\n\nIs an object with a \nmutable\n call operator:\n\n\nconcept FunctionObject\n{\n    template\nclass... Ts\n\n    auto operator()(Ts\n...);\n};\n\n\n\n\nRequirements:\n\n\nThe type \nF\n satisfies \nFunctionObject\n if\n\n\n\n\nThe type \nF\n satisfies \nstd::is_object\n, and \n\n\n\n\nGiven\n\n\n\n\nf\n, an object of type \nF\n\n\nargs...\n, suitable argument list, which may be empty \n\n\n\n\n\n\n\n\n\n\nExpression\n\n\nRequirements\n\n\n\n\n\n\n\n\n\n\nf(args...)\n\n\nperforms a function call\n\n\n\n\n\n\n\n\nEvaluatableFunctionObject\n\n\nIs an object that is either a \nNullaryFunctionObject\n, or it is an \nUnaryFuntionObject\n that accepts the \nidentity\n function as a parameter.\n\n\nRequirements:\n\n\n\n\nNullaryFunctionObject\n\n\n\n\nGiven\n\n\n\n\nf\n, an object of type \nconst F\n\n\n\n\n\n\n\n\n\n\nExpression\n\n\nRequirements\n\n\n\n\n\n\n\n\n\n\nf()\n\n\nperforms a function call\n\n\n\n\n\n\n\n\nOr:\n\n\n\n\nUnaryFuntionObject\n\n\n\n\nGiven\n\n\n\n\nf\n, an object of type \nconst F\n\n\nidentity\n, which is the identity function\n\n\n\n\n\n\n\n\n\n\nExpression\n\n\nRequirements\n\n\n\n\n\n\n\n\n\n\nf(identity)\n\n\nperforms a function call\n\n\n\n\n\n\n\n\nCallable\n\n\nIs an object for which the \nINVOKE\n operation can be applied.\n\n\nRequirements:\n\n\nThe type \nT\n satisfies \nCallable\n if\n\n\nGiven\n\n\n\n\nf\n, an object of type \nconst T\n\n\nArgs...\n, suitable list of argument types\n\n\n\n\nThe following expressions must be valid: \n\n\n\n\n\n\n\n\nExpression\n\n\nRequirements\n\n\n\n\n\n\n\n\n\n\nINVOKE(f, std::declval\nArgs\n()...)\n\n\nthe expression is well-formed in unevaluated context\n\n\n\n\n\n\n\n\nwhere \nINVOKE(f, x, xs...)\n is defined as follows:\n\n\n\n\n\n\nif \nf\n is a pointer to member function of class \nT\n: \n\n\n\n\nIf \nstd::is_base_of\nT, std::decay_t\ndecltype(x)\n()\n is true, then \nINVOKE(f, x, xs...)\n is equivalent to \n(x.*f)(xs...)\n\n\notherwise, if \nstd::decay_t\ndecltype(x)\n is a specialization of \nstd::reference_wrapper\n, then \nINVOKE(f, x, xs...)\n is equivalent to \n(x.get().*f)(xs...)\n \n\n\notherwise, if x does not satisfy the previous items, then \nINVOKE(f, x, xs...)\n is equivalent to \n((*x).*f)(xs...)\n. \n\n\n\n\n\n\n\n\notherwise, if \nf\n is a pointer to data member of class \nT\n: \n\n\n\n\nIf \nstd::is_base_of\nT, std::decay_t\ndecltype(x)\n()\n is true, then \nINVOKE(f, x)\n is equivalent to \nx.*f\n\n\notherwise, if \nstd::decay_t\ndecltype(x)\n is a specialization of \nstd::reference_wrapper\n, then \nINVOKE(f, x)\n is equivalent to \nx.get().*f\n\n\notherwise, if \nx\n does not satisfy the previous items, then \nINVOKE(f, x)\n is equivalent to \n(*x).*f\n\n\n\n\n\n\n\n\notherwise, \nINVOKE(f, x, xs...)\n is equivalent to \nf(x, xs...)\n\n\n\n\n\n\nUnaryCallable\n\n\nIs an object for which the \nINVOKE\n operation can be applied with one parameter.\n\n\nRequirements:\n\n\n\n\nCallable\n\n\n\n\nGiven\n\n\n\n\nf\n, an object of type \nconst F\n\n\narg\n, a single argument\n\n\n\n\n\n\n\n\n\n\nExpression\n\n\nRequirements\n\n\n\n\n\n\n\n\n\n\nINVOKE(f, arg)\n\n\nthe expression is well-formed in unevaluated context\n\n\n\n\n\n\n\n\nBinaryCallable\n\n\nIs an object for which the \nINVOKE\n operation can be applied with two parameters.\n\n\nRequirements:\n\n\n\n\nCallable\n\n\n\n\nGiven\n\n\n\n\nf\n, an object of type \nconst F\n\n\narg1\n, a single argument\n\n\narg2\n, a single argument\n\n\n\n\n\n\n\n\n\n\nExpression\n\n\nRequirements\n\n\n\n\n\n\n\n\n\n\nINVOKE(f, arg1, arg2)\n\n\nthe expression is well-formed in unevaluated context\n\n\n\n\n\n\n\n\nMetafunction\n\n\nGiven\n\n\n\n\nf\n, a metafunction\n\n\nargs...\n, any suitable type, which may be empty\n\n\n\n\n\n\n\n\n\n\nExpression\n\n\nRequirements\n\n\n\n\n\n\n\n\n\n\nf::type\n\n\nThe type is the result of the metafunction\n\n\n\n\n\n\nf\nargs...\n::type\n\n\nThe type is the result of the metafunction\n\n\n\n\n\n\n\n\nMetafunctionClass\n\n\nGiven\n\n\n\n\nf\n, is a metafunction class\n\n\nargs...\n, any suitable type, which may be empty\n\n\n\n\n\n\n\n\n\n\nExpression\n\n\nRequirements\n\n\n\n\n\n\n\n\n\n\nf::apply::type\n\n\nThe type is the result of the metafunction\n\n\n\n\n\n\nf::apply\nargs...\n::type\n\n\nThe type is the result of the metafunction", 
+            "title": "Basic Concepts"
+        }, 
+        {
+            "location": "/concepts/index.html#basic-concepts", 
+            "text": "", 
+            "title": "Basic Concepts"
+        }, 
+        {
+            "location": "/concepts/index.html#functionobject", 
+            "text": "Is an object with a  const  call operator:  concept FunctionObject\n{\n    template class... Ts \n    auto operator()(Ts ...) const;\n};  Requirements:  The type  F  satisfies  FunctionObject  if   The type  F  satisfies  std::is_object , and    Given   f , an object of type  const F  args... , suitable argument list, which may be empty       Expression  Requirements      f(args...)  performs a function call", 
+            "title": "FunctionObject"
+        }, 
+        {
+            "location": "/concepts/index.html#nullaryfunctionobject", 
+            "text": "Is an object with a  const  call operator that accepts no parameters:  concept NullaryFunctionObject\n{\n    auto operator()() const;\n};  Requirements:   FunctionObject   Given   f , an object of type  const F      Expression  Requirements      f()  performs a function call", 
+            "title": "NullaryFunctionObject"
+        }, 
+        {
+            "location": "/concepts/index.html#unaryfunctionobject", 
+            "text": "Is an object with a  const  call operator that accepts one parameter:  concept UnaryFunctionObject\n{\n    template class T \n    auto operator()(T ) const;\n};  Requirements:   FunctionObject   Given   f , an object of type  const F  arg , a single argument      Expression  Requirements      f(arg)  performs a function call", 
+            "title": "UnaryFunctionObject"
+        }, 
+        {
+            "location": "/concepts/index.html#binaryfunctionobject", 
+            "text": "Is an object with a  const  call operator that accepts two parameter:  concept UnaryFunctionObject\n{\n    template class T, class U \n    auto operator()(T , U ) const;\n};  Requirements:   FunctionObject   Given   f , an object of type  const F  arg1 , a single argument  arg2 , a single argument      Expression  Requirements      f(arg1, arg2)  performs a function call", 
+            "title": "BinaryFunctionObject"
+        }, 
+        {
+            "location": "/concepts/index.html#mutablefunctionobject", 
+            "text": "Is an object with a  mutable  call operator:  concept FunctionObject\n{\n    template class... Ts \n    auto operator()(Ts ...);\n};  Requirements:  The type  F  satisfies  FunctionObject  if   The type  F  satisfies  std::is_object , and    Given   f , an object of type  F  args... , suitable argument list, which may be empty       Expression  Requirements      f(args...)  performs a function call", 
+            "title": "MutableFunctionObject"
+        }, 
+        {
+            "location": "/concepts/index.html#evaluatablefunctionobject", 
+            "text": "Is an object that is either a  NullaryFunctionObject , or it is an  UnaryFuntionObject  that accepts the  identity  function as a parameter.  Requirements:   NullaryFunctionObject   Given   f , an object of type  const F      Expression  Requirements      f()  performs a function call     Or:   UnaryFuntionObject   Given   f , an object of type  const F  identity , which is the identity function      Expression  Requirements      f(identity)  performs a function call", 
+            "title": "EvaluatableFunctionObject"
+        }, 
+        {
+            "location": "/concepts/index.html#callable", 
+            "text": "Is an object for which the  INVOKE  operation can be applied.  Requirements:  The type  T  satisfies  Callable  if  Given   f , an object of type  const T  Args... , suitable list of argument types   The following expressions must be valid:      Expression  Requirements      INVOKE(f, std::declval Args ()...)  the expression is well-formed in unevaluated context     where  INVOKE(f, x, xs...)  is defined as follows:    if  f  is a pointer to member function of class  T :    If  std::is_base_of T, std::decay_t decltype(x) ()  is true, then  INVOKE(f, x, xs...)  is equivalent to  (x.*f)(xs...)  otherwise, if  std::decay_t decltype(x)  is a specialization of  std::reference_wrapper , then  INVOKE(f, x, xs...)  is equivalent to  (x.get().*f)(xs...)    otherwise, if x does not satisfy the previous items, then  INVOKE(f, x, xs...)  is equivalent to  ((*x).*f)(xs...) .      otherwise, if  f  is a pointer to data member of class  T :    If  std::is_base_of T, std::decay_t decltype(x) ()  is true, then  INVOKE(f, x)  is equivalent to  x.*f  otherwise, if  std::decay_t decltype(x)  is a specialization of  std::reference_wrapper , then  INVOKE(f, x)  is equivalent to  x.get().*f  otherwise, if  x  does not satisfy the previous items, then  INVOKE(f, x)  is equivalent to  (*x).*f     otherwise,  INVOKE(f, x, xs...)  is equivalent to  f(x, xs...)", 
+            "title": "Callable"
+        }, 
+        {
+            "location": "/concepts/index.html#unarycallable", 
+            "text": "Is an object for which the  INVOKE  operation can be applied with one parameter.  Requirements:   Callable   Given   f , an object of type  const F  arg , a single argument      Expression  Requirements      INVOKE(f, arg)  the expression is well-formed in unevaluated context", 
+            "title": "UnaryCallable"
+        }, 
+        {
+            "location": "/concepts/index.html#binarycallable", 
+            "text": "Is an object for which the  INVOKE  operation can be applied with two parameters.  Requirements:   Callable   Given   f , an object of type  const F  arg1 , a single argument  arg2 , a single argument      Expression  Requirements      INVOKE(f, arg1, arg2)  the expression is well-formed in unevaluated context", 
+            "title": "BinaryCallable"
+        }, 
+        {
+            "location": "/concepts/index.html#metafunction", 
+            "text": "Given   f , a metafunction  args... , any suitable type, which may be empty      Expression  Requirements      f::type  The type is the result of the metafunction    f args... ::type  The type is the result of the metafunction", 
+            "title": "Metafunction"
+        }, 
+        {
+            "location": "/concepts/index.html#metafunctionclass", 
+            "text": "Given   f , is a metafunction class  args... , any suitable type, which may be empty      Expression  Requirements      f::apply::type  The type is the result of the metafunction    f::apply args... ::type  The type is the result of the metafunction", 
+            "title": "MetafunctionClass"
+        }, 
+        {
+            "location": "/requirements/index.html", 
+            "text": "Requirements\n\n\nThis requires a C++11 compiler. There are no third-party dependencies. This has been tested on clang 3.4-3.7, gcc 4.6-4.9, and Visual Studio 2015. Gcc 5.1 is not supported at all.", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/requirements/index.html#requirements", 
+            "text": "This requires a C++11 compiler. There are no third-party dependencies. This has been tested on clang 3.4-3.7, gcc 4.6-4.9, and Visual Studio 2015. Gcc 5.1 is not supported at all.", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/acknowledgements/index.html", 
+            "text": "Acknowledgements\n\n\n\n\nBoost.Egg\n: A very powerful library for function objects in C++98.\n\n\nShunsuke Sogame\n\n\n\n\n\n\nBoost.Hana\n: A metaprogramming library with many functional constructs\n\n\nLouis Dionne\n\n\n\n\n\n\nnamed-operators\n: A library to create named operators\n\n\nKonrad Rudolph\n\n\n\n\n\n\nPack/Unpack without Using Tuple\n\n\nJamboree\n\n\n\n\n\n\nfor_each_argument\n\n\nSean Parent\n\n\n\n\n\n\nSuggested Design for Customization Points\n\n\nEric Niebler\n\n\n\n\n\n\nFC++\n: Functional Programming in C++\n\n\nBrian McNamara and Yannis Smaragdakis\n\n\n\n\n\n\nBoost.Phoenix\n\n\nJoel de Guzman, Dan Marsden, Thomas Heller, and John Fletcher", 
+            "title": "Acknowledgements"
+        }, 
+        {
+            "location": "/acknowledgements/index.html#acknowledgements", 
+            "text": "Boost.Egg : A very powerful library for function objects in C++98.  Shunsuke Sogame    Boost.Hana : A metaprogramming library with many functional constructs  Louis Dionne    named-operators : A library to create named operators  Konrad Rudolph    Pack/Unpack without Using Tuple  Jamboree    for_each_argument  Sean Parent    Suggested Design for Customization Points  Eric Niebler    FC++ : Functional Programming in C++  Brian McNamara and Yannis Smaragdakis    Boost.Phoenix  Joel de Guzman, Dan Marsden, Thomas Heller, and John Fletcher", 
+            "title": "Acknowledgements"
+        }, 
+        {
+            "location": "/license/index.html", 
+            "text": "Boost Software License - Version 1.0 - August 17th, 2003\n\n\nPermission is hereby granted, free of charge, to any person or organization\nobtaining a copy of the software and accompanying documentation covered by\nthis license (the \"Software\") to use, reproduce, display, distribute,\nexecute, and transmit the Software, and to prepare derivative works of the\nSoftware, and to permit third-parties to whom the Software is furnished to\ndo so, all subject to the following:\n\n\nThe copyright notices in the Software and this entire statement, including\nthe above license grant, this restriction and the following disclaimer,\nmust be included in all copies of the Software, in whole or in part, and\nall derivative works of the Software, unless such copies or derivative\nworks are solely in the form of machine-executable object code generated by\na source language processor.\n\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO EVENT\nSHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE\nFOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,\nARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER", 
+            "title": "License"
+        }, 
+        {
+            "location": "/by/index.html", 
+            "text": "by\n\n\nHeader\n\n\n#include \nboost/fit/by.hpp\n\n\n\n\nDescription\n\n\nThe \nby\n function adaptor applies a projection onto the parameters of\nanother function. This is useful, for example, to define a function for\nsorting such that the ordering is based off of the value of one of its\nmember fields. \n\n\nAlso, if just a projection is given, then the projection will be called\nfor each of its arguments.\n\n\nNote: All projections are always evaluated in order from left-to-right.\n\n\nSynopsis\n\n\ntemplate\nclass Projection, class F\n\nconstexpr by_adaptor\nProjection, F\n by(Projection p, F f);\n\ntemplate\nclass Projection\n\nconstexpr by_adaptor\nProjection\n by(Projection p);\n\n\n\nSemantics\n\n\nassert(by(p, f)(xs...) == f(p(xs)...));\n\n\n\nRequirements\n\n\nProjection must be:\n\n\n\n\nUnaryCallable\n\n\nMoveConstructible\n\n\n\n\nF must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct foo\n{\n    foo(int x) : x(x)\n    {}\n    int x;\n};\nassert(boost::fit::by(\nfoo::x, _ + _)(foo(1), foo(2)) == 3);", 
+            "title": "by"
+        }, 
+        {
+            "location": "/by/index.html#by", 
+            "text": "", 
+            "title": "by"
+        }, 
+        {
+            "location": "/by/index.html#header", 
+            "text": "#include  boost/fit/by.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/by/index.html#description", 
+            "text": "The  by  function adaptor applies a projection onto the parameters of\nanother function. This is useful, for example, to define a function for\nsorting such that the ordering is based off of the value of one of its\nmember fields.   Also, if just a projection is given, then the projection will be called\nfor each of its arguments.  Note: All projections are always evaluated in order from left-to-right.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/by/index.html#synopsis", 
+            "text": "template class Projection, class F \nconstexpr by_adaptor Projection, F  by(Projection p, F f);\n\ntemplate class Projection \nconstexpr by_adaptor Projection  by(Projection p);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/by/index.html#semantics", 
+            "text": "assert(by(p, f)(xs...) == f(p(xs)...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/by/index.html#requirements", 
+            "text": "Projection must be:   UnaryCallable  MoveConstructible   F must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/by/index.html#example", 
+            "text": "struct foo\n{\n    foo(int x) : x(x)\n    {}\n    int x;\n};\nassert(boost::fit::by( foo::x, _ + _)(foo(1), foo(2)) == 3);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/compose/index.html", 
+            "text": "compose\n\n\nHeader\n\n\n#include \nboost/fit/compose.hpp\n\n\n\n\nDescription\n\n\nThe \ncompose\n function adaptor provides function composition. It produces\na function object that composes a set of functions, ie the output of one\nfunction becomes the input of the second function. So, \ncompose(f, g)(0)\n\nis equivalent to \nf(g(0))\n.\n\n\nSynopsis\n\n\ntemplate\nclass... Fs\n\nconstexpr compose_adaptor\nFs...\n compose(Fs... fs);\n\n\n\nSemantics\n\n\nassert(compose(f, g)(xs...) == f(g(xs...)));\n\n\n\nRequirements\n\n\nFs must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct increment\n{\n    template\nclass T\n\n    T operator()(T x) const\n    {\n        return x + 1;\n    }\n};\n\nstruct decrement\n{\n    template\nclass T\n\n    T operator()(T x) const\n    {\n        return x - 1;\n    }\n};\n\nint r = compose(increment(), decrement(), increment())(3);\nassert(r == 4);", 
+            "title": "compose"
+        }, 
+        {
+            "location": "/compose/index.html#compose", 
+            "text": "", 
+            "title": "compose"
+        }, 
+        {
+            "location": "/compose/index.html#header", 
+            "text": "#include  boost/fit/compose.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/compose/index.html#description", 
+            "text": "The  compose  function adaptor provides function composition. It produces\na function object that composes a set of functions, ie the output of one\nfunction becomes the input of the second function. So,  compose(f, g)(0) \nis equivalent to  f(g(0)) .", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/compose/index.html#synopsis", 
+            "text": "template class... Fs \nconstexpr compose_adaptor Fs...  compose(Fs... fs);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/compose/index.html#semantics", 
+            "text": "assert(compose(f, g)(xs...) == f(g(xs...)));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/compose/index.html#requirements", 
+            "text": "Fs must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/compose/index.html#example", 
+            "text": "struct increment\n{\n    template class T \n    T operator()(T x) const\n    {\n        return x + 1;\n    }\n};\n\nstruct decrement\n{\n    template class T \n    T operator()(T x) const\n    {\n        return x - 1;\n    }\n};\n\nint r = compose(increment(), decrement(), increment())(3);\nassert(r == 4);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/conditional/index.html", 
+            "text": "conditional\n\n\nHeader\n\n\n#include \nboost/fit/conditional.hpp\n\n\n\n\nDescription\n\n\nThe \nconditional\n function adaptor combines several functions together. If\nthe first function can not be called, then it will try to call the next\nfunction. This can be very useful when overloading functions using\ntemplate constraints(such as with \nenable_if\n).\n\n\nNote: This is different than the \nmatch\n function adaptor, which\ncan lead to ambiguities. Instead, \nconditional\n will call the first function\nthat is callable, regardless if there is another function that could be\ncalled as well.\n\n\nSynopsis\n\n\ntemplate\nclass... Fs\n\nconstexpr conditional_adaptor\nFs...\n conditional(Fs... fs);\n\n\n\nRequirements\n\n\nFs must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct for_ints\n{\n    void operator()(int) const\n    {\n        printf(\"Int\\n\");\n    }\n};\n\nstruct for_floats\n{\n    void operator()(int) const\n    {\n        printf(\"Float\\n\");\n    }\n};\n\nconditional(for_ints(), for_floats())(3.0);\n\n\n\nThis will print \nInt\n because the \nfor_floats\n function object won't ever be\ncalled. Due to the conversion rules in C++, the \nfor_ints\n function can be\ncalled on floats, so it is chosen by \nconditional\n first, even though\n\nfor_floats\n is a better match.\n\n\nSo, the order of the functions in the \nconditional_adaptor\n are very important\nto how the function is chosen.", 
+            "title": "conditional"
+        }, 
+        {
+            "location": "/conditional/index.html#conditional", 
+            "text": "", 
+            "title": "conditional"
+        }, 
+        {
+            "location": "/conditional/index.html#header", 
+            "text": "#include  boost/fit/conditional.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/conditional/index.html#description", 
+            "text": "The  conditional  function adaptor combines several functions together. If\nthe first function can not be called, then it will try to call the next\nfunction. This can be very useful when overloading functions using\ntemplate constraints(such as with  enable_if ).  Note: This is different than the  match  function adaptor, which\ncan lead to ambiguities. Instead,  conditional  will call the first function\nthat is callable, regardless if there is another function that could be\ncalled as well.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/conditional/index.html#synopsis", 
+            "text": "template class... Fs \nconstexpr conditional_adaptor Fs...  conditional(Fs... fs);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/conditional/index.html#requirements", 
+            "text": "Fs must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/conditional/index.html#example", 
+            "text": "struct for_ints\n{\n    void operator()(int) const\n    {\n        printf(\"Int\\n\");\n    }\n};\n\nstruct for_floats\n{\n    void operator()(int) const\n    {\n        printf(\"Float\\n\");\n    }\n};\n\nconditional(for_ints(), for_floats())(3.0);  This will print  Int  because the  for_floats  function object won't ever be\ncalled. Due to the conversion rules in C++, the  for_ints  function can be\ncalled on floats, so it is chosen by  conditional  first, even though for_floats  is a better match.  So, the order of the functions in the  conditional_adaptor  are very important\nto how the function is chosen.", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/combine/index.html", 
+            "text": "combine\n\n\nHeader\n\n\n#include \nboost/fit/combine.hpp\n\n\n\n\nDescription\n\n\nThe \ncombine\n function adaptor combines several functions together with\ntheir arguments. It essentially zips each function with an argument before\ncalling the main function.\n\n\nSynopsis\n\n\ntemplate\nclass F, class... Gs\n\nconstexpr combine_adaptor\nF, Gs...\n combine(F f, Gs... gs);\n\n\n\nSemantics\n\n\nassert(combine(f, gs...)(xs...) == f(gs(xs)...));\n\n\n\nRequirements\n\n\nF and Gs must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nauto f = boost::fit::combine(\n    boost::fit::construct\nstd::tuple\n(),\n    boost::fit::capture(1)(boost::fit::construct\nstd::pair\n()),\n    boost::fit::capture(2)(boost::fit::construct\nstd::pair\n()));\nassert(f(2, 4) == std::make_tuple(std::make_pair(1, 2), std::make_pair(2, 4)));", 
+            "title": "combine"
+        }, 
+        {
+            "location": "/combine/index.html#combine", 
+            "text": "", 
+            "title": "combine"
+        }, 
+        {
+            "location": "/combine/index.html#header", 
+            "text": "#include  boost/fit/combine.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/combine/index.html#description", 
+            "text": "The  combine  function adaptor combines several functions together with\ntheir arguments. It essentially zips each function with an argument before\ncalling the main function.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/combine/index.html#synopsis", 
+            "text": "template class F, class... Gs \nconstexpr combine_adaptor F, Gs...  combine(F f, Gs... gs);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/combine/index.html#semantics", 
+            "text": "assert(combine(f, gs...)(xs...) == f(gs(xs)...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/combine/index.html#requirements", 
+            "text": "F and Gs must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/combine/index.html#example", 
+            "text": "auto f = boost::fit::combine(\n    boost::fit::construct std::tuple (),\n    boost::fit::capture(1)(boost::fit::construct std::pair ()),\n    boost::fit::capture(2)(boost::fit::construct std::pair ()));\nassert(f(2, 4) == std::make_tuple(std::make_pair(1, 2), std::make_pair(2, 4)));", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/compress/index.html", 
+            "text": "compress\n\n\nHeader\n\n\n#include \nboost/fit/compress.hpp\n\n\n\n\nDescription\n\n\nThe \ncompress\n function adaptor uses a binary function to apply a fold\noperation to the arguments passed to the function. Additionally, an optional\ninitial state can be provided, otherwise the first argument is used as the\ninitial state. \n\n\nThe arguments to the binary function, take first the state and then the\nargument.\n\n\nSynopsis\n\n\ntemplate\nclass F, class State\n\nconstexpr compress_adaptor\nF, State\n compress(F f, State s);\n\ntemplate\nclass F\n\nconstexpr compress_adaptor\nF\n compress(F f);\n\n\n\nSemantics\n\n\nassert(compress(f, z)() == z);\nassert(compress(f, z)(x, xs...) == compress(f, f(z, x))(xs...));\nassert(compress(f)(x) == x);\nassert(compress(f)(x, y, xs...) == compress(f)(f(x, y), xs...));\n\n\n\nRequirements\n\n\nState must be:\n\n\n\n\nCopyConstructible\n\n\n\n\nF must be:\n\n\n\n\nBinaryCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct max_f\n{\n    template\nclass T, class U\n\n    constexpr T operator()(T x, U y) const\n    {\n        return x \n y ? x : y;\n    }\n};\nassert(boost::fit::compress(max_f())(2, 3, 4, 5) == 5);", 
+            "title": "compress"
+        }, 
+        {
+            "location": "/compress/index.html#compress", 
+            "text": "", 
+            "title": "compress"
+        }, 
+        {
+            "location": "/compress/index.html#header", 
+            "text": "#include  boost/fit/compress.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/compress/index.html#description", 
+            "text": "The  compress  function adaptor uses a binary function to apply a fold\noperation to the arguments passed to the function. Additionally, an optional\ninitial state can be provided, otherwise the first argument is used as the\ninitial state.   The arguments to the binary function, take first the state and then the\nargument.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/compress/index.html#synopsis", 
+            "text": "template class F, class State \nconstexpr compress_adaptor F, State  compress(F f, State s);\n\ntemplate class F \nconstexpr compress_adaptor F  compress(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/compress/index.html#semantics", 
+            "text": "assert(compress(f, z)() == z);\nassert(compress(f, z)(x, xs...) == compress(f, f(z, x))(xs...));\nassert(compress(f)(x) == x);\nassert(compress(f)(x, y, xs...) == compress(f)(f(x, y), xs...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/compress/index.html#requirements", 
+            "text": "State must be:   CopyConstructible   F must be:   BinaryCallable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/compress/index.html#example", 
+            "text": "struct max_f\n{\n    template class T, class U \n    constexpr T operator()(T x, U y) const\n    {\n        return x   y ? x : y;\n    }\n};\nassert(boost::fit::compress(max_f())(2, 3, 4, 5) == 5);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/decorate/index.html", 
+            "text": "decorate\n\n\nHeader\n\n\n#include \nboost/fit/decorate.hpp\n\n\n\n\nDescription\n\n\nThe \ndecorate\n function adaptor helps create simple function decorators. \n\n\nSynopsis\n\n\ntemplate\nclass F\n\nconstexpr decorate_adaptor\nF\n decorate(F f);\n\n\n\nSemantics\n\n\nassert(decorate(f)(x)(g)(xs...) == f(x, g, xs...));\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nCallable\n\n\nMoveConstructible", 
+            "title": "decorate"
+        }, 
+        {
+            "location": "/decorate/index.html#decorate", 
+            "text": "", 
+            "title": "decorate"
+        }, 
+        {
+            "location": "/decorate/index.html#header", 
+            "text": "#include  boost/fit/decorate.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/decorate/index.html#description", 
+            "text": "The  decorate  function adaptor helps create simple function decorators.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/decorate/index.html#synopsis", 
+            "text": "template class F \nconstexpr decorate_adaptor F  decorate(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/decorate/index.html#semantics", 
+            "text": "assert(decorate(f)(x)(g)(xs...) == f(x, g, xs...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/decorate/index.html#requirements", 
+            "text": "F must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/fix/index.html", 
+            "text": "fix\n\n\nHeader\n\n\n#include \nboost/fit/fix.hpp\n\n\n\n\nDescription\n\n\nThe \nfix\n function adaptor implements a fixed-point combinator. This can be\nused to write recursive functions. \n\n\nNote: Compilers are too eager to instantiate templates when using\nconstexpr, which causes the compiler to reach its internal instantiation\nlimit. So, unfortunately, \nfix\n cannot be used for \nconstexpr\n functions.\n\n\nSynopsis\n\n\ntemplate\nclass F\n\nconstexpr fix_adaptor\nF\n fix(F f);\n\n\n\nSemantics\n\n\nassert(fix(f)(xs...) == f(f, xs...));\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nint r = boost::fit::fix([](auto s, auto x) -\n decltype(x) { return x == 0 ? 1 : x * s(x-1); })(5);\nassert(r == 5*4*3*2*1);", 
+            "title": "fix"
+        }, 
+        {
+            "location": "/fix/index.html#fix", 
+            "text": "", 
+            "title": "fix"
+        }, 
+        {
+            "location": "/fix/index.html#header", 
+            "text": "#include  boost/fit/fix.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/fix/index.html#description", 
+            "text": "The  fix  function adaptor implements a fixed-point combinator. This can be\nused to write recursive functions.   Note: Compilers are too eager to instantiate templates when using\nconstexpr, which causes the compiler to reach its internal instantiation\nlimit. So, unfortunately,  fix  cannot be used for  constexpr  functions.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/fix/index.html#synopsis", 
+            "text": "template class F \nconstexpr fix_adaptor F  fix(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/fix/index.html#semantics", 
+            "text": "assert(fix(f)(xs...) == f(f, xs...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/fix/index.html#requirements", 
+            "text": "F must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/fix/index.html#example", 
+            "text": "int r = boost::fit::fix([](auto s, auto x) -  decltype(x) { return x == 0 ? 1 : x * s(x-1); })(5);\nassert(r == 5*4*3*2*1);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/flip/index.html", 
+            "text": "flip\n\n\nHeader\n\n\n#include \nboost/fit/flip.hpp\n\n\n\n\nDescription\n\n\nThe \nflip\n function adaptor swaps the first two parameters.\n\n\nSynopsis\n\n\ntemplate\nclass F\n\nflip_adaptor\nF\n flip(F f);\n\n\n\nSemantics\n\n\nassert(flip(f)(x, y, xs...) == f(y, x, xs...));\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nBinaryCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nint r = boost::fit::flip(boost::fit::_ - boost::fit::_)(2, 5);\nassert(r == 3);", 
+            "title": "flip"
+        }, 
+        {
+            "location": "/flip/index.html#flip", 
+            "text": "", 
+            "title": "flip"
+        }, 
+        {
+            "location": "/flip/index.html#header", 
+            "text": "#include  boost/fit/flip.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/flip/index.html#description", 
+            "text": "The  flip  function adaptor swaps the first two parameters.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/flip/index.html#synopsis", 
+            "text": "template class F \nflip_adaptor F  flip(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/flip/index.html#semantics", 
+            "text": "assert(flip(f)(x, y, xs...) == f(y, x, xs...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/flip/index.html#requirements", 
+            "text": "F must be:   BinaryCallable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/flip/index.html#example", 
+            "text": "int r = boost::fit::flip(boost::fit::_ - boost::fit::_)(2, 5);\nassert(r == 3);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/flow/index.html", 
+            "text": "flow\n\n\nHeader\n\n\n#include \nboost/fit/flow.hpp\n\n\n\n\nDescription\n\n\nThe \nflow\n function adaptor provides function composition. It is useful as\nan alternative to using the pipe operator \n|\n when chaining functions. It is\nsimiliar to \ncompose\n except the evauluation order is\nreversed. So, \nflow(f, g)(0)\n is equivalent to \ng(f(0))\n.\n\n\nSynopsis\n\n\ntemplate\nclass... Fs\n\nconstexpr flow_adaptor\nFs...\n flow(Fs... fs);\n\n\n\nSemantics\n\n\nassert(flow(f, g)(xs...) == g(f(xs...)));\n\n\n\nRequirements\n\n\nFs must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct increment\n{\n    template\nclass T\n\n    T operator()(T x) const\n    {\n        return x + 1;\n    }\n};\n\nstruct decrement\n{\n    template\nclass T\n\n    T operator()(T x) const\n    {\n        return x - 1;\n    }\n};\n\nint r = flow(increment(), decrement(), increment())(3);\nassert(r == 4);", 
+            "title": "flow"
+        }, 
+        {
+            "location": "/flow/index.html#flow", 
+            "text": "", 
+            "title": "flow"
+        }, 
+        {
+            "location": "/flow/index.html#header", 
+            "text": "#include  boost/fit/flow.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/flow/index.html#description", 
+            "text": "The  flow  function adaptor provides function composition. It is useful as\nan alternative to using the pipe operator  |  when chaining functions. It is\nsimiliar to  compose  except the evauluation order is\nreversed. So,  flow(f, g)(0)  is equivalent to  g(f(0)) .", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/flow/index.html#synopsis", 
+            "text": "template class... Fs \nconstexpr flow_adaptor Fs...  flow(Fs... fs);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/flow/index.html#semantics", 
+            "text": "assert(flow(f, g)(xs...) == g(f(xs...)));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/flow/index.html#requirements", 
+            "text": "Fs must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/flow/index.html#example", 
+            "text": "struct increment\n{\n    template class T \n    T operator()(T x) const\n    {\n        return x + 1;\n    }\n};\n\nstruct decrement\n{\n    template class T \n    T operator()(T x) const\n    {\n        return x - 1;\n    }\n};\n\nint r = flow(increment(), decrement(), increment())(3);\nassert(r == 4);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/implicit/index.html", 
+            "text": "implicit\n\n\nHeader\n\n\n#include \nboost/fit/implicit.hpp\n\n\n\n\nDescription\n\n\nThe \nimplicit\n adaptor is a static function adaptor that uses the type\nthat the return value can be converted to in order to determine the type\nof the template parameter. In essence, it will deduce the type for the\ntemplate parameter using the type of variable the result is assigned to.\nSince it is a static function adaptor, the function must be default\nconstructible.\n\n\nSynopsis\n\n\ntemplate\ntemplate \nclass...\n class F\n\nclass implicit\nF\n;\n\n\n\nSemantics\n\n\nassert(T(implicit\nF\n()(xs...)) == F\nT\n()(xs...));\n\n\n\nRequirements\n\n\nF must be a template class, that is a:\n\n\n\n\nFunctionObject\n\n\nDefaultConstructible\n\n\n\n\nExample\n\n\ntemplate\nclass T\n\nstruct auto_caster\n{\n    template\nclass U\n\n    T operator()(U x)\n    {\n        return T(x);\n    }\n};\n\nimplicit\nauto_caster\n auto_cast = {};\n\nstruct auto_caster_foo\n{\n    int i;\n    explicit auto_caster_foo(int i) : i(i) {}\n\n};\n\nfloat f = 1.5;\nint i = auto_cast(f);\nauto_caster_foo x = auto_cast(1);\nassert(1 == i);\nassert(1 == x.i);", 
+            "title": "implicit"
+        }, 
+        {
+            "location": "/implicit/index.html#implicit", 
+            "text": "", 
+            "title": "implicit"
+        }, 
+        {
+            "location": "/implicit/index.html#header", 
+            "text": "#include  boost/fit/implicit.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/implicit/index.html#description", 
+            "text": "The  implicit  adaptor is a static function adaptor that uses the type\nthat the return value can be converted to in order to determine the type\nof the template parameter. In essence, it will deduce the type for the\ntemplate parameter using the type of variable the result is assigned to.\nSince it is a static function adaptor, the function must be default\nconstructible.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/implicit/index.html#synopsis", 
+            "text": "template template  class...  class F \nclass implicit F ;", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/implicit/index.html#semantics", 
+            "text": "assert(T(implicit F ()(xs...)) == F T ()(xs...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/implicit/index.html#requirements", 
+            "text": "F must be a template class, that is a:   FunctionObject  DefaultConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/implicit/index.html#example", 
+            "text": "template class T \nstruct auto_caster\n{\n    template class U \n    T operator()(U x)\n    {\n        return T(x);\n    }\n};\n\nimplicit auto_caster  auto_cast = {};\n\nstruct auto_caster_foo\n{\n    int i;\n    explicit auto_caster_foo(int i) : i(i) {}\n\n};\n\nfloat f = 1.5;\nint i = auto_cast(f);\nauto_caster_foo x = auto_cast(1);\nassert(1 == i);\nassert(1 == x.i);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/indirect/index.html", 
+            "text": "indirect\n\n\nHeader\n\n\n#include \nboost/fit/indirect.hpp\n\n\n\n\nDescription\n\n\nThe \nindirect\n function adaptor dereferences the object before calling it.\n\n\nSynopsis\n\n\ntemplate\nclass F\n\nconstexpr indirect_adaptor\nF\n indirect(F f);\n\n\n\nSemantics\n\n\nassert(indirect(f)(xs...) == (*f)(xs...));\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nFunctionObject\n\n\nMoveConstructible\n\n\nDereferenceable\n\n\n\n\nExample\n\n\nstruct sum\n{\n    template\nclass T, class U\n\n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nint r = indirect(std::make_unique\nsum\n())(3,2);\nassert(r == 5);", 
+            "title": "indirect"
+        }, 
+        {
+            "location": "/indirect/index.html#indirect", 
+            "text": "", 
+            "title": "indirect"
+        }, 
+        {
+            "location": "/indirect/index.html#header", 
+            "text": "#include  boost/fit/indirect.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/indirect/index.html#description", 
+            "text": "The  indirect  function adaptor dereferences the object before calling it.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/indirect/index.html#synopsis", 
+            "text": "template class F \nconstexpr indirect_adaptor F  indirect(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/indirect/index.html#semantics", 
+            "text": "assert(indirect(f)(xs...) == (*f)(xs...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/indirect/index.html#requirements", 
+            "text": "F must be:   FunctionObject  MoveConstructible  Dereferenceable", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/indirect/index.html#example", 
+            "text": "struct sum\n{\n    template class T, class U \n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nint r = indirect(std::make_unique sum ())(3,2);\nassert(r == 5);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/infix/index.html", 
+            "text": "infix\n\n\nHeader\n\n\n#include \nboost/fit/infix.hpp\n\n\n\n\nDescription\n\n\nThe \ninfix\n function adaptor allows the function to be used as an infix\noperator. The operator must be placed inside the angle brackets(ie \n\nand \n).\n\n\nSynopsis\n\n\ntemplate\nclass F\n\nconstexpr infix_adaptor\nF\n infix(F f);\n\n\n\nSemantics\n\n\nassert((x \ninfix(f)\n y) == f(x, y));\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nBinaryCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct plus_f\n{\n    template\nclass T, class U\n\n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nconstexpr infix_adaptor\nplus_f\n plus = {};\nint r = 3 \nplus\n 2;\nassert(r == 5);", 
+            "title": "infix"
+        }, 
+        {
+            "location": "/infix/index.html#infix", 
+            "text": "", 
+            "title": "infix"
+        }, 
+        {
+            "location": "/infix/index.html#header", 
+            "text": "#include  boost/fit/infix.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/infix/index.html#description", 
+            "text": "The  infix  function adaptor allows the function to be used as an infix\noperator. The operator must be placed inside the angle brackets(ie  \nand  ).", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/infix/index.html#synopsis", 
+            "text": "template class F \nconstexpr infix_adaptor F  infix(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/infix/index.html#semantics", 
+            "text": "assert((x  infix(f)  y) == f(x, y));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/infix/index.html#requirements", 
+            "text": "F must be:   BinaryCallable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/infix/index.html#example", 
+            "text": "struct plus_f\n{\n    template class T, class U \n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nconstexpr infix_adaptor plus_f  plus = {};\nint r = 3  plus  2;\nassert(r == 5);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/lazy/index.html", 
+            "text": "lazy\n\n\nHeader\n\n\n#include \nboost/fit/lazy.hpp\n\n\n\n\nDescription\n\n\nThe \nlazy\n function adaptor returns a function object call wrapper for a\nfunction. Calling this wrapper is equivalent to invoking the function. It\nis a simple form of lambda expressions, but is constexpr friendly.\n\n\nUltimately, calling \nlazy(f)(x)\n is the equivalent to calling\n\nstd::bind(f, x)\n except the lazy version can be called in a constexpr\ncontext, as well. The \nlazy\n adaptor is compatible with \nstd::bind\n, so\nmost of the time \nlazy\n and \nstd::bind\n can be used interchangeably.\nHowever, the \nlazy\n adaptor won't accept member function pointers, like\n\nstd::bind\n will.\n\n\nSynopsis\n\n\ntemplate\nclass F\n\nconstexpr lazy_adaptor\nF\n lazy(F f);\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nauto add = [](auto x, auto y) { return x+y; }\nauto increment = lazy(add)(_1, 1);\nassert(increment(5) == 6);", 
+            "title": "lazy"
+        }, 
+        {
+            "location": "/lazy/index.html#lazy", 
+            "text": "", 
+            "title": "lazy"
+        }, 
+        {
+            "location": "/lazy/index.html#header", 
+            "text": "#include  boost/fit/lazy.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/lazy/index.html#description", 
+            "text": "The  lazy  function adaptor returns a function object call wrapper for a\nfunction. Calling this wrapper is equivalent to invoking the function. It\nis a simple form of lambda expressions, but is constexpr friendly.  Ultimately, calling  lazy(f)(x)  is the equivalent to calling std::bind(f, x)  except the lazy version can be called in a constexpr\ncontext, as well. The  lazy  adaptor is compatible with  std::bind , so\nmost of the time  lazy  and  std::bind  can be used interchangeably.\nHowever, the  lazy  adaptor won't accept member function pointers, like std::bind  will.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/lazy/index.html#synopsis", 
+            "text": "template class F \nconstexpr lazy_adaptor F  lazy(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/lazy/index.html#requirements", 
+            "text": "F must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/lazy/index.html#example", 
+            "text": "auto add = [](auto x, auto y) { return x+y; }\nauto increment = lazy(add)(_1, 1);\nassert(increment(5) == 6);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/match/index.html", 
+            "text": "match\n\n\nHeader\n\n\n#include \nboost/fit/match.hpp\n\n\n\n\nDescription\n\n\nThe \nmatch\n function adaptor combines several functions together and\nresolves which one should be called by using C++ overload resolution. This\nis different than the \nconditional\n adaptor which resolves\nthem based on order.\n\n\nSynopsis\n\n\ntemplate\nclass... Fs\n\nconstexpr match_adaptor\nFs...\n match(Fs...fs);\n\n\n\nRequirements\n\n\nFs must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct int_class\n{\n    int operator()(int) const\n    {\n        return 1;\n    }\n};\n\nstruct foo\n{};\n\nstruct foo_class\n{\n    foo operator()(foo) const\n    {\n        return foo();\n    }\n};\n\ntypedef match_adaptor\nint_class, foo_class\n fun;\n\nstatic_assert(std::is_same\nint, decltype(fun()(1))\n::value, \"Failed match\");\nstatic_assert(std::is_same\nfoo, decltype(fun()(foo()))\n::value, \"Failed match\");", 
+            "title": "match"
+        }, 
+        {
+            "location": "/match/index.html#match", 
+            "text": "", 
+            "title": "match"
+        }, 
+        {
+            "location": "/match/index.html#header", 
+            "text": "#include  boost/fit/match.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/match/index.html#description", 
+            "text": "The  match  function adaptor combines several functions together and\nresolves which one should be called by using C++ overload resolution. This\nis different than the  conditional  adaptor which resolves\nthem based on order.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/match/index.html#synopsis", 
+            "text": "template class... Fs \nconstexpr match_adaptor Fs...  match(Fs...fs);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/match/index.html#requirements", 
+            "text": "Fs must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/match/index.html#example", 
+            "text": "struct int_class\n{\n    int operator()(int) const\n    {\n        return 1;\n    }\n};\n\nstruct foo\n{};\n\nstruct foo_class\n{\n    foo operator()(foo) const\n    {\n        return foo();\n    }\n};\n\ntypedef match_adaptor int_class, foo_class  fun;\n\nstatic_assert(std::is_same int, decltype(fun()(1)) ::value, \"Failed match\");\nstatic_assert(std::is_same foo, decltype(fun()(foo())) ::value, \"Failed match\");", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/mutable/index.html", 
+            "text": "mutable\n\n\nHeader\n\n\n#include \nboost/fit/mutable.hpp\n\n\n\n\nDescription\n\n\nThe \nmutable\n function adaptor allows using a non-const function object\ninside of a const-function object. In Fit, all the function adaptors use\n\nconst\n call overloads, so if there is a function that has a non-const\ncall operator, it couldn't be used directly. So, \nmutable_\n allows the\nfunction to be used inside of the call operator.\n\n\nNOTE: This function should be used with caution since many functions are\ncopied, so relying on some internal shared state can be error-prone.\n\n\nSynopsis\n\n\ntemplate\nclass F\n\nmutable_adaptor\nF\n mutable_(F f)\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nMutableFunctionObject\n\n\nMoveConstructible", 
+            "title": "mutable"
+        }, 
+        {
+            "location": "/mutable/index.html#mutable", 
+            "text": "", 
+            "title": "mutable"
+        }, 
+        {
+            "location": "/mutable/index.html#header", 
+            "text": "#include  boost/fit/mutable.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/mutable/index.html#description", 
+            "text": "The  mutable  function adaptor allows using a non-const function object\ninside of a const-function object. In Fit, all the function adaptors use const  call overloads, so if there is a function that has a non-const\ncall operator, it couldn't be used directly. So,  mutable_  allows the\nfunction to be used inside of the call operator.  NOTE: This function should be used with caution since many functions are\ncopied, so relying on some internal shared state can be error-prone.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/mutable/index.html#synopsis", 
+            "text": "template class F \nmutable_adaptor F  mutable_(F f)", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/mutable/index.html#requirements", 
+            "text": "F must be:   MutableFunctionObject  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/partial/index.html", 
+            "text": "partial\n\n\nHeader\n\n\n#include \nboost/fit/partial.hpp\n\n\n\n\nDescription\n\n\nThe \npartial\n function adaptor allows partial application of the function.\nIf the function can not be called with all the parameters, it will return\nanother function. It will continually do this until the function can\nfinally be called. By default, \npartial\n captures all of its variables by\nvalue, just like bind. \nstd::ref\n can be used to capture references\ninstead.\n\n\nSynopsis\n\n\ntemplate\nclass F\n\nconstexpr partial_adaptor\nF\n partial(F f);\n\n\n\nSemantics\n\n\nassert(partial(f)(xs...)(ys...) == f(xs..., ys...));\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct sum\n{\n    template\nclass T, class U\n\n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nassert(3 == partial(sum())(1)(2));", 
+            "title": "partial"
+        }, 
+        {
+            "location": "/partial/index.html#partial", 
+            "text": "", 
+            "title": "partial"
+        }, 
+        {
+            "location": "/partial/index.html#header", 
+            "text": "#include  boost/fit/partial.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/partial/index.html#description", 
+            "text": "The  partial  function adaptor allows partial application of the function.\nIf the function can not be called with all the parameters, it will return\nanother function. It will continually do this until the function can\nfinally be called. By default,  partial  captures all of its variables by\nvalue, just like bind.  std::ref  can be used to capture references\ninstead.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/partial/index.html#synopsis", 
+            "text": "template class F \nconstexpr partial_adaptor F  partial(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/partial/index.html#semantics", 
+            "text": "assert(partial(f)(xs...)(ys...) == f(xs..., ys...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/partial/index.html#requirements", 
+            "text": "F must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/partial/index.html#example", 
+            "text": "struct sum\n{\n    template class T, class U \n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nassert(3 == partial(sum())(1)(2));", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/pipable/index.html", 
+            "text": "pipable\n\n\nHeader\n\n\n#include \nboost/fit/pipable.hpp\n\n\n\n\nDescription\n\n\nThe \npipable\n function adaptor provides an extension method. The first\nparameter of the function can be piped into the function using the pipe\n\n|\n operator. This can be especially convenient when there are a lot of\nnested function calls. Functions that are made pipable can still be called\nthe traditional way without piping in the first parameter.\n\n\nSynopsis\n\n\ntemplate\nclass F\n\nconstexpr pipable_adaptor\nF\n pipable(F f);\n\n\n\nSemantics\n\n\nassert(x | pipable(f)(ys...) == f(x, ys...));\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct sum\n{\n    template\nclass T, class U\n\n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nassert(3 == 1 | pipable(sum())(2));\nassert(3 == pipable(sum())(1, 2));", 
+            "title": "pipable"
+        }, 
+        {
+            "location": "/pipable/index.html#pipable", 
+            "text": "", 
+            "title": "pipable"
+        }, 
+        {
+            "location": "/pipable/index.html#header", 
+            "text": "#include  boost/fit/pipable.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/pipable/index.html#description", 
+            "text": "The  pipable  function adaptor provides an extension method. The first\nparameter of the function can be piped into the function using the pipe |  operator. This can be especially convenient when there are a lot of\nnested function calls. Functions that are made pipable can still be called\nthe traditional way without piping in the first parameter.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/pipable/index.html#synopsis", 
+            "text": "template class F \nconstexpr pipable_adaptor F  pipable(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/pipable/index.html#semantics", 
+            "text": "assert(x | pipable(f)(ys...) == f(x, ys...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/pipable/index.html#requirements", 
+            "text": "F must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/pipable/index.html#example", 
+            "text": "struct sum\n{\n    template class T, class U \n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nassert(3 == 1 | pipable(sum())(2));\nassert(3 == pipable(sum())(1, 2));", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/protect/index.html", 
+            "text": "protect\n\n\nHeader\n\n\n#include \nboost/fit/protect.hpp\n\n\n\n\nDescription\n\n\nThe \nprotect\n function adaptor can be used to make a bind expression be\ntreated as a normal function instead. Both \nbind\n and \nlazy\n\neargerly evaluates nested bind expressions. The \nprotect\n adaptor masks\nthe type so \nbind\n or \nlazy\n no longer recognizes the function\nas bind expression and evaluates it.\n\n\nSynopsis\n\n\ntemplate\nclass F\n\nconstexpr protect_adaptor\nF\n protect(F f);\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nCallable\n\n\nMoveConstructible", 
+            "title": "protect"
+        }, 
+        {
+            "location": "/protect/index.html#protect", 
+            "text": "", 
+            "title": "protect"
+        }, 
+        {
+            "location": "/protect/index.html#header", 
+            "text": "#include  boost/fit/protect.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/protect/index.html#description", 
+            "text": "The  protect  function adaptor can be used to make a bind expression be\ntreated as a normal function instead. Both  bind  and  lazy \neargerly evaluates nested bind expressions. The  protect  adaptor masks\nthe type so  bind  or  lazy  no longer recognizes the function\nas bind expression and evaluates it.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/protect/index.html#synopsis", 
+            "text": "template class F \nconstexpr protect_adaptor F  protect(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/protect/index.html#requirements", 
+            "text": "F must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/result/index.html", 
+            "text": "result\n\n\nHeader\n\n\n#include \nboost/fit/result.hpp\n\n\n\n\nDescription\n\n\nThe \nresult\n function adaptor sets the return type for the function, which\ncan be useful when dealing with multiple overloads. Since the return type\nis no longer dependent on the parameters passed to the function, the\n\nresult_adaptor\n provides a nested \nresult_type\n that is the return type\nof the function.\n\n\nSynopsis\n\n\ntemplate\nclass Result, class F\n\nconstexpr result_adaptor\nResult, F\n result(F f);\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct id\n{\n    template\nclass T\n\n    T operator()(T x) const\n    {\n        return x;\n    }\n};\n\nauto int_result = boost::fit::result\nint\n(id());\nstatic_assert(std::is_same\ndecltype(int_result(true)), int\n::value, \"Not the same type\");", 
+            "title": "result"
+        }, 
+        {
+            "location": "/result/index.html#result", 
+            "text": "", 
+            "title": "result"
+        }, 
+        {
+            "location": "/result/index.html#header", 
+            "text": "#include  boost/fit/result.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/result/index.html#description", 
+            "text": "The  result  function adaptor sets the return type for the function, which\ncan be useful when dealing with multiple overloads. Since the return type\nis no longer dependent on the parameters passed to the function, the result_adaptor  provides a nested  result_type  that is the return type\nof the function.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/result/index.html#synopsis", 
+            "text": "template class Result, class F \nconstexpr result_adaptor Result, F  result(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/result/index.html#requirements", 
+            "text": "F must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/result/index.html#example", 
+            "text": "struct id\n{\n    template class T \n    T operator()(T x) const\n    {\n        return x;\n    }\n};\n\nauto int_result = boost::fit::result int (id());\nstatic_assert(std::is_same decltype(int_result(true)), int ::value, \"Not the same type\");", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/reveal/index.html", 
+            "text": "reveal\n\n\nHeader\n\n\n#include \nboost/fit/reveal.hpp\n\n\n\n\nDescription\n\n\nThe \nreveal\n function adaptor helps shows the error messages that get\nmasked on some compilers. Sometimes an error in a function that causes a\nsubstitution failure, will remove the function from valid overloads. On\ncompilers without a backtrace for substitution failure, this will mask the\nerror inside the function. The \nreveal\n adaptor will expose these error\nmessages while still keeping the function SFINAE-friendly.\n\n\nSynopsis\n\n\ntemplate\nclass F\n\nreveal_adaptor\nF\n reveal(F f);\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nCallable\n\n\nMoveConstructible", 
+            "title": "reveal"
+        }, 
+        {
+            "location": "/reveal/index.html#reveal", 
+            "text": "", 
+            "title": "reveal"
+        }, 
+        {
+            "location": "/reveal/index.html#header", 
+            "text": "#include  boost/fit/reveal.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/reveal/index.html#description", 
+            "text": "The  reveal  function adaptor helps shows the error messages that get\nmasked on some compilers. Sometimes an error in a function that causes a\nsubstitution failure, will remove the function from valid overloads. On\ncompilers without a backtrace for substitution failure, this will mask the\nerror inside the function. The  reveal  adaptor will expose these error\nmessages while still keeping the function SFINAE-friendly.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/reveal/index.html#synopsis", 
+            "text": "template class F \nreveal_adaptor F  reveal(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/reveal/index.html#requirements", 
+            "text": "F must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/reverse_compress/index.html", 
+            "text": "reverse_compress\n\n\nHeader\n\n\n#include \nboost/fit/reverse_compress.hpp\n\n\n\n\nDescription\n\n\nThe \nreverse_compress\n function adaptor uses a binary function to apply a\nreverse fold(ie right fold in functional programming terms) operation to\nthe arguments passed to the function. Additionally, an optional initial\nstate can be provided, otherwise the first argument is used as the initial\nstate.\n\n\nThe arguments to the binary function, take first the state and then the\nargument.\n\n\nSynopsis\n\n\ntemplate\nclass F, class State\n\nconstexpr reverse_compress_adaptor\nF, State\n reverse_compress(F f, State s);\n\ntemplate\nclass F\n\nconstexpr reverse_compress_adaptor\nF\n reverse_compress(F f);\n\n\n\nSemantics\n\n\nassert(reverse_compress(f, z)() == z);\nassert(reverse_compress(f, z)(x, xs...) == f(reverse_compress(f, z)(xs...), x));\nassert(reverse_compress(f)(x) == x);\nassert(reverse_compress(f)(x, xs...) == f(reverse_compress(f)(xs...), x));\n\n\n\nRequirements\n\n\nState must be:\n\n\n\n\nCopyConstructible\n\n\n\n\nF must be:\n\n\n\n\nBinaryCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct max_f\n{\n    template\nclass T, class U\n\n    constexpr T operator()(T x, U y) const\n    {\n        return x \n y ? x : y;\n    }\n};\nassert(boost::fit::reverse_compress(max_f())(2, 3, 4, 5) == 5);", 
+            "title": "reverse_compress"
+        }, 
+        {
+            "location": "/reverse_compress/index.html#reverse_compress", 
+            "text": "", 
+            "title": "reverse_compress"
+        }, 
+        {
+            "location": "/reverse_compress/index.html#header", 
+            "text": "#include  boost/fit/reverse_compress.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/reverse_compress/index.html#description", 
+            "text": "The  reverse_compress  function adaptor uses a binary function to apply a\nreverse fold(ie right fold in functional programming terms) operation to\nthe arguments passed to the function. Additionally, an optional initial\nstate can be provided, otherwise the first argument is used as the initial\nstate.  The arguments to the binary function, take first the state and then the\nargument.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/reverse_compress/index.html#synopsis", 
+            "text": "template class F, class State \nconstexpr reverse_compress_adaptor F, State  reverse_compress(F f, State s);\n\ntemplate class F \nconstexpr reverse_compress_adaptor F  reverse_compress(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/reverse_compress/index.html#semantics", 
+            "text": "assert(reverse_compress(f, z)() == z);\nassert(reverse_compress(f, z)(x, xs...) == f(reverse_compress(f, z)(xs...), x));\nassert(reverse_compress(f)(x) == x);\nassert(reverse_compress(f)(x, xs...) == f(reverse_compress(f)(xs...), x));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/reverse_compress/index.html#requirements", 
+            "text": "State must be:   CopyConstructible   F must be:   BinaryCallable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/reverse_compress/index.html#example", 
+            "text": "struct max_f\n{\n    template class T, class U \n    constexpr T operator()(T x, U y) const\n    {\n        return x   y ? x : y;\n    }\n};\nassert(boost::fit::reverse_compress(max_f())(2, 3, 4, 5) == 5);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/rotate/index.html", 
+            "text": "rotate\n\n\nHeader\n\n\n#include \nboost/fit/rotate.hpp\n\n\n\n\nDescription\n\n\nThe \nrotate\n function adaptor moves the first parameter to the last\nparameter.\n\n\nSynopsis\n\n\ntemplate\nclass F\n\nrotate_adaptor\nF\n rotate(F f);\n\n\n\nSemantics\n\n\nassert(rotate(f)(x, xs...) == f(xs..., x));\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nint r = boost::fit::rotate(boost::fit::_ - boost::fit::_)(2, 5);\nassert(r == 3);", 
+            "title": "rotate"
+        }, 
+        {
+            "location": "/rotate/index.html#rotate", 
+            "text": "", 
+            "title": "rotate"
+        }, 
+        {
+            "location": "/rotate/index.html#header", 
+            "text": "#include  boost/fit/rotate.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/rotate/index.html#description", 
+            "text": "The  rotate  function adaptor moves the first parameter to the last\nparameter.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/rotate/index.html#synopsis", 
+            "text": "template class F \nrotate_adaptor F  rotate(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/rotate/index.html#semantics", 
+            "text": "assert(rotate(f)(x, xs...) == f(xs..., x));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/rotate/index.html#requirements", 
+            "text": "F must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/rotate/index.html#example", 
+            "text": "int r = boost::fit::rotate(boost::fit::_ - boost::fit::_)(2, 5);\nassert(r == 3);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/static/index.html", 
+            "text": "static\n\n\nHeader\n\n\n#include \nboost/fit/static.hpp\n\n\n\n\nDescription\n\n\nThe \nstatic_\n adaptor is a static function adaptor that allows any\ndefault-constructible function object to be static-initialized. Functions\ninitialized by \nstatic_\n cannot be used in \nconstexpr\n functions. If the\nfunction needs to be statically initialized and called in a \nconstexpr\n\ncontext, then a \nconstexpr\n constructor needs to be used rather than\n\nstatic_\n.\n\n\nSynopsis\n\n\ntemplate\nclass F\n\nclass static_;\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nFunctionObject\n\n\nDefaultConstructible\n\n\n\n\nExample\n\n\n// In C++ this class can't be static-initialized, because of the non-\n// trivial default constructor.\nstruct times_function\n{\n    double factor;\n    times2_function() : factor(2)\n    {}\n    template\nclass T\n\n    T operator()(T x) const\n    {\n        return x*factor;\n    }\n};\n\nstatic_\ntimes_function\n times2 = {};\n\nassert(6 == times2(3));", 
+            "title": "static"
+        }, 
+        {
+            "location": "/static/index.html#static", 
+            "text": "", 
+            "title": "static"
+        }, 
+        {
+            "location": "/static/index.html#header", 
+            "text": "#include  boost/fit/static.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/static/index.html#description", 
+            "text": "The  static_  adaptor is a static function adaptor that allows any\ndefault-constructible function object to be static-initialized. Functions\ninitialized by  static_  cannot be used in  constexpr  functions. If the\nfunction needs to be statically initialized and called in a  constexpr \ncontext, then a  constexpr  constructor needs to be used rather than static_ .", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/static/index.html#synopsis", 
+            "text": "template class F \nclass static_;", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/static/index.html#requirements", 
+            "text": "F must be:   FunctionObject  DefaultConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/static/index.html#example", 
+            "text": "// In C++ this class can't be static-initialized, because of the non-\n// trivial default constructor.\nstruct times_function\n{\n    double factor;\n    times2_function() : factor(2)\n    {}\n    template class T \n    T operator()(T x) const\n    {\n        return x*factor;\n    }\n};\n\nstatic_ times_function  times2 = {};\n\nassert(6 == times2(3));", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/unpack/index.html", 
+            "text": "unpack\n\n\nHeader\n\n\n#include \nboost/fit/unpack.hpp\n\n\n\n\nDescription\n\n\nThe \nunpack\n function adaptor takes a sequence and uses the elements of\nthe sequence for the arguments to the function. Multiple sequences can be\npassed to the function. All elements from each sequence will be passed\ninto the function. \n\n\nSynopsis\n\n\ntemplate\nclass F\n\nunpack_adaptor\nF\n unpack(F f);\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct sum\n{\n    template\nclass T, class U\n\n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nint r = unpack(sum())(std::make_tuple(3,2));\nassert(r == 5);\n\n\n\nis_unpackable\n\n\nHeader\n\n\n#include \nboost/fit/unpack.hpp\n\n\n\n\nThis is a trait that can be used to detect whethet the type can be called\nwith \nunpack\n.\n\n\nSynopsis\n\n\ntemplate\nclass T\n\nstruct is_unpackable;\n\n\n\nExample\n\n\nstatic_assert(boost::fit::is_unpackable\nstd::tuple\nint\n::value, \"Failed\");\n\n\n\nunpack_sequence\n\n\nHeader\n\n\n#include \nboost/fit/unpack.hpp\n\n\n\n\nHow to unpack a sequence can be defined by specializing \nunpack_sequence\n.\nBy default, \nstd::tuple\n can be used with unpack.\n\n\nSynopsis\n\n\ntemplate\nclass Sequence, class=void\n\nstruct unpack_sequence;\n\n\n\nExample\n\n\ntemplate\nclass... Ts\n\nstruct unpack_sequence\nmy_sequence\nTs...\n\n{\n    template\nclass F, class Sequence\n\n    constexpr static auto apply(F\n f, Sequence\n s) BOOST_FIT_RETURNS\n    (\n        s(std::forward\nF\n(f))\n    );\n};", 
+            "title": "unpack"
+        }, 
+        {
+            "location": "/unpack/index.html#unpack", 
+            "text": "", 
+            "title": "unpack"
+        }, 
+        {
+            "location": "/unpack/index.html#header", 
+            "text": "#include  boost/fit/unpack.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/unpack/index.html#description", 
+            "text": "The  unpack  function adaptor takes a sequence and uses the elements of\nthe sequence for the arguments to the function. Multiple sequences can be\npassed to the function. All elements from each sequence will be passed\ninto the function.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/unpack/index.html#synopsis", 
+            "text": "template class F \nunpack_adaptor F  unpack(F f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/unpack/index.html#requirements", 
+            "text": "F must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/unpack/index.html#example", 
+            "text": "struct sum\n{\n    template class T, class U \n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nint r = unpack(sum())(std::make_tuple(3,2));\nassert(r == 5);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/unpack/index.html#is_unpackable", 
+            "text": "", 
+            "title": "is_unpackable"
+        }, 
+        {
+            "location": "/unpack/index.html#header_1", 
+            "text": "#include  boost/fit/unpack.hpp   This is a trait that can be used to detect whethet the type can be called\nwith  unpack .", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/unpack/index.html#synopsis_1", 
+            "text": "template class T \nstruct is_unpackable;", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/unpack/index.html#example_1", 
+            "text": "static_assert(boost::fit::is_unpackable std::tuple int ::value, \"Failed\");", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/unpack/index.html#unpack_sequence", 
+            "text": "", 
+            "title": "unpack_sequence"
+        }, 
+        {
+            "location": "/unpack/index.html#header_2", 
+            "text": "#include  boost/fit/unpack.hpp   How to unpack a sequence can be defined by specializing  unpack_sequence .\nBy default,  std::tuple  can be used with unpack.", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/unpack/index.html#synopsis_2", 
+            "text": "template class Sequence, class=void \nstruct unpack_sequence;", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/unpack/index.html#example_2", 
+            "text": "template class... Ts \nstruct unpack_sequence my_sequence Ts... \n{\n    template class F, class Sequence \n    constexpr static auto apply(F  f, Sequence  s) BOOST_FIT_RETURNS\n    (\n        s(std::forward F (f))\n    );\n};", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/capture/index.html", 
+            "text": "capture\n\n\nHeader\n\n\n#include \nboost/fit/capture.hpp\n\n\n\n\nDescription\n\n\nThe \ncapture\n function decorator is used to capture values in a function.\nIt provides more flexibility in capturing than the lambda capture list in\nC++. It provides a way to do move and perfect capturing. The values\ncaptured are prepended to the argument list of the function that will be\ncalled.\n\n\nSynopsis\n\n\n// Capture lvalues by reference and rvalues by value.\ntemplate\nclass... Ts\n\nconstexpr auto capture(Ts\n... xs);\n\n// Capture lvalues by reference and rvalue reference by reference\ntemplate\nclass... Ts\n\nconstexpr auto capture_forward(Ts\n... xs);\n\n// Capture by decaying each value\ntemplate\nclass... Ts\n\nconstexpr auto capture_decay(Ts\n... xs);\n\n\n\nSemantics\n\n\nassert(capture(xs...)(f)(ys...) == f(xs..., ys...));\n\n\n\nExample\n\n\nstruct sum_f\n{\n    template\nclass T, class U\n\n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\nauto add_one = boost::fit::capture(1)(sum_f());\nassert(add_one(2) == 3);", 
+            "title": "capture"
+        }, 
+        {
+            "location": "/capture/index.html#capture", 
+            "text": "", 
+            "title": "capture"
+        }, 
+        {
+            "location": "/capture/index.html#header", 
+            "text": "#include  boost/fit/capture.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/capture/index.html#description", 
+            "text": "The  capture  function decorator is used to capture values in a function.\nIt provides more flexibility in capturing than the lambda capture list in\nC++. It provides a way to do move and perfect capturing. The values\ncaptured are prepended to the argument list of the function that will be\ncalled.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/capture/index.html#synopsis", 
+            "text": "// Capture lvalues by reference and rvalues by value.\ntemplate class... Ts \nconstexpr auto capture(Ts ... xs);\n\n// Capture lvalues by reference and rvalue reference by reference\ntemplate class... Ts \nconstexpr auto capture_forward(Ts ... xs);\n\n// Capture by decaying each value\ntemplate class... Ts \nconstexpr auto capture_decay(Ts ... xs);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/capture/index.html#semantics", 
+            "text": "assert(capture(xs...)(f)(ys...) == f(xs..., ys...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/capture/index.html#example", 
+            "text": "struct sum_f\n{\n    template class T, class U \n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\nauto add_one = boost::fit::capture(1)(sum_f());\nassert(add_one(2) == 3);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/if/index.html", 
+            "text": "if\n\n\nHeader\n\n\n#include \nboost/fit/if.hpp\n\n\n\n\nDescription\n\n\nThe \nif_\n function decorator makes the function callable if the boolean\ncondition is true. The \nif_c\n version can be used to give a boolean\ncondition directly(instead of relying on dependent typing).\n\n\nSynopsis\n\n\ntemplate\nclass IntegralConstant\n\nconstexpr auto if_(IntegralConstant);\n\ntemplate\nbool B, class F\n\nconstexpr auto if_c(F);\n\n\n\nRequirements\n\n\nIntegralConstant must be:\n\n\n\n\nIntegralConstant\n\n\n\n\nF must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct sum_f\n{\n    template\nclass T\n\n    int operator()(T x, T y) const\n    {\n        return boost::fit::conditional(\n            boost::fit::if_(std::is_integral\nT\n())(boost::fit::_ + boost::fit::_),\n            boost::fit::always(0)\n        )(x, y);\n    }\n};\nassert(sum_f()(1, 2) == 3);\nassert(sum_f()(\"\", \"\") == 0);", 
+            "title": "if"
+        }, 
+        {
+            "location": "/if/index.html#if", 
+            "text": "", 
+            "title": "if"
+        }, 
+        {
+            "location": "/if/index.html#header", 
+            "text": "#include  boost/fit/if.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/if/index.html#description", 
+            "text": "The  if_  function decorator makes the function callable if the boolean\ncondition is true. The  if_c  version can be used to give a boolean\ncondition directly(instead of relying on dependent typing).", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/if/index.html#synopsis", 
+            "text": "template class IntegralConstant \nconstexpr auto if_(IntegralConstant);\n\ntemplate bool B, class F \nconstexpr auto if_c(F);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/if/index.html#requirements", 
+            "text": "IntegralConstant must be:   IntegralConstant   F must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/if/index.html#example", 
+            "text": "struct sum_f\n{\n    template class T \n    int operator()(T x, T y) const\n    {\n        return boost::fit::conditional(\n            boost::fit::if_(std::is_integral T ())(boost::fit::_ + boost::fit::_),\n            boost::fit::always(0)\n        )(x, y);\n    }\n};\nassert(sum_f()(1, 2) == 3);\nassert(sum_f()(\"\", \"\") == 0);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/limit/index.html", 
+            "text": "limit\n\n\nHeader\n\n\n#include \nboost/fit/limit.hpp\n\n\n\n\nDescription\n\n\nThe \nlimit\n function decorator annotates the function with the max number of\nparameters. The \nlimit_c\n version can be used to give a the number\ndirectly(instead of relying on dependent typing).\n\n\nSynopsis\n\n\ntemplate\nclass IntegralConstant\n\nconstexpr auto limit(IntegralConstant);\n\ntemplate\nstd::size_t N, class F\n\nconstexpr auto limit_c(F);\n\n\n\nRequirements\n\n\nIntegralConstant must be:\n\n\n\n\nIntegralConstant\n\n\n\n\nF must be:\n\n\n\n\nCallable\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct sum_f\n{\n    template\nclass T\n\n    int operator()(T x, T y) const\n    {\n        return x+y\n    }\n};\nBOOST_FIT_STATIC_FUNCTION(sum) = limit_c\n2\n(sum_f());\n\n\n\nfunction_param_limit\n\n\nHeader\n\n\n#include \nboost/fit/limit.hpp\n\n\n\n\nDescription\n\n\nThe \nfunction_param_limit\n metafunction retrieves the maxium number of\nparameters for a function.\n\n\nSynopsis\n\n\ntemplate\nclass F\n\nstruct function_param_limit;", 
+            "title": "limit"
+        }, 
+        {
+            "location": "/limit/index.html#limit", 
+            "text": "", 
+            "title": "limit"
+        }, 
+        {
+            "location": "/limit/index.html#header", 
+            "text": "#include  boost/fit/limit.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/limit/index.html#description", 
+            "text": "The  limit  function decorator annotates the function with the max number of\nparameters. The  limit_c  version can be used to give a the number\ndirectly(instead of relying on dependent typing).", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/limit/index.html#synopsis", 
+            "text": "template class IntegralConstant \nconstexpr auto limit(IntegralConstant);\n\ntemplate std::size_t N, class F \nconstexpr auto limit_c(F);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/limit/index.html#requirements", 
+            "text": "IntegralConstant must be:   IntegralConstant   F must be:   Callable  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/limit/index.html#example", 
+            "text": "struct sum_f\n{\n    template class T \n    int operator()(T x, T y) const\n    {\n        return x+y\n    }\n};\nBOOST_FIT_STATIC_FUNCTION(sum) = limit_c 2 (sum_f());", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/limit/index.html#function_param_limit", 
+            "text": "", 
+            "title": "function_param_limit"
+        }, 
+        {
+            "location": "/limit/index.html#header_1", 
+            "text": "#include  boost/fit/limit.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/limit/index.html#description_1", 
+            "text": "The  function_param_limit  metafunction retrieves the maxium number of\nparameters for a function.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/limit/index.html#synopsis_1", 
+            "text": "template class F \nstruct function_param_limit;", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/repeat/index.html", 
+            "text": "repeat\n\n\nHeader\n\n\n#include \nboost/fit/repeat.hpp\n\n\n\n\nDescription\n\n\nThe \nrepeat\n function decorator will repeatedly apply a function a given\nnumber of times.\n\n\nSynopsis\n\n\ntemplate\nclass IntegralConstant\n\nconstexpr repeat_adaptor\nIntegralConstant\n repeat(IntegralConstant);\n\n\n\nRequirements\n\n\nIntegralConstant must be:\n\n\n\n\nIntegralConstant\n\n\n\n\nExample\n\n\nstruct increment\n{\n    template\nclass T\n\n    constexpr T operator()(T x) const\n    {\n        return x + 1;\n    }\n};\n\nconstexpr auto increment_by_5 = boost::fit::repeat(std::integral_constant\nint, 5\n())(increment());\nassert(increment_by_5(1) == 6);", 
+            "title": "repeat"
+        }, 
+        {
+            "location": "/repeat/index.html#repeat", 
+            "text": "", 
+            "title": "repeat"
+        }, 
+        {
+            "location": "/repeat/index.html#header", 
+            "text": "#include  boost/fit/repeat.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/repeat/index.html#description", 
+            "text": "The  repeat  function decorator will repeatedly apply a function a given\nnumber of times.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/repeat/index.html#synopsis", 
+            "text": "template class IntegralConstant \nconstexpr repeat_adaptor IntegralConstant  repeat(IntegralConstant);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/repeat/index.html#requirements", 
+            "text": "IntegralConstant must be:   IntegralConstant", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/repeat/index.html#example", 
+            "text": "struct increment\n{\n    template class T \n    constexpr T operator()(T x) const\n    {\n        return x + 1;\n    }\n};\n\nconstexpr auto increment_by_5 = boost::fit::repeat(std::integral_constant int, 5 ())(increment());\nassert(increment_by_5(1) == 6);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/repeat_while/index.html", 
+            "text": "repeat_while\n\n\nHeader\n\n\n#include \nboost/fit/repeat_while.hpp\n\n\n\n\nDescription\n\n\nThe \nrepeat_while\n function decorator will repeatedly apply a function while\nthe predicate returns an integral constant that is true. As such, the\npredicate must be depedently-typed since it is never called at runtime.\n\n\nSynopsis\n\n\ntemplate\nclass Predicate\n\nconstexpr auto repeat_while(Predicate predicate);\n\n\n\nRequirements\n\n\nPredicate must be:\n\n\n\n\nFunctionObject\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nstruct increment\n{\n    template\nclass T\n\n    constexpr std::integral_constant\nint, T::value + 1\n operator()(T) const\n    {\n        return std::integral_constant\nint, T::value + 1\n();\n    }\n};\n\nstruct not_6\n{\n    template\nclass T\n\n    constexpr std::integral_constant\nbool, (T::value != 6)\n \n    operator()(T) const\n    {\n        return std::integral_constant\nbool, (T::value != 6)\n();\n    }\n};\n\ntypedef std::integral_constant\nint, 1\n one;\ntypedef std::integral_constant\nint, 6\n six;\n\ntypedef decltype(boost::fit::repeat_while(not_6())(increment())(std::integral_constant\nint, 1\n())) increment_until_6;\n\n\nconstexpr auto increment_until_6 = boost::fit::repeat_while(not_6())(increment());\nstatic_assert(std::is_same\nsix, decltype(increment_until_6(one()))\n::value, \"Error\");", 
+            "title": "repeat_while"
+        }, 
+        {
+            "location": "/repeat_while/index.html#repeat_while", 
+            "text": "", 
+            "title": "repeat_while"
+        }, 
+        {
+            "location": "/repeat_while/index.html#header", 
+            "text": "#include  boost/fit/repeat_while.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/repeat_while/index.html#description", 
+            "text": "The  repeat_while  function decorator will repeatedly apply a function while\nthe predicate returns an integral constant that is true. As such, the\npredicate must be depedently-typed since it is never called at runtime.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/repeat_while/index.html#synopsis", 
+            "text": "template class Predicate \nconstexpr auto repeat_while(Predicate predicate);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/repeat_while/index.html#requirements", 
+            "text": "Predicate must be:   FunctionObject  MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/repeat_while/index.html#example", 
+            "text": "struct increment\n{\n    template class T \n    constexpr std::integral_constant int, T::value + 1  operator()(T) const\n    {\n        return std::integral_constant int, T::value + 1 ();\n    }\n};\n\nstruct not_6\n{\n    template class T \n    constexpr std::integral_constant bool, (T::value != 6)  \n    operator()(T) const\n    {\n        return std::integral_constant bool, (T::value != 6) ();\n    }\n};\n\ntypedef std::integral_constant int, 1  one;\ntypedef std::integral_constant int, 6  six;\n\ntypedef decltype(boost::fit::repeat_while(not_6())(increment())(std::integral_constant int, 1 ())) increment_until_6;\n\n\nconstexpr auto increment_until_6 = boost::fit::repeat_while(not_6())(increment());\nstatic_assert(std::is_same six, decltype(increment_until_6(one())) ::value, \"Error\");", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/always/index.html", 
+            "text": "always\n\n\nHeader\n\n\n#include \nboost/fit/always.hpp\n\n\n\n\nDescription\n\n\nThe \nalways\n function returns a function object that will always return\nthe value given to it, no matter what parameters are passed to the\nfunction object. The \nalways_ref\n version will return a reference, and it\nrequires the value passed in to be an lvalue.\n\n\nSynopsis\n\n\ntemplate\nclass T\n\nconstexpr /* unspecified */ always(T value);\n\ntemplate\nclass T\n\nconstexpr /* unspecified */ always_ref(T\n value);\n\n\n\nSemantics\n\n\nassert(always(x)(xs...) == x);\n\n\n\nRequirements\n\n\nT must be:\n\n\n\n\nCopyConstructible\n\n\n\n\nExample\n\n\nint ten = 10;\nassert( always(ten)(1,2,3,4,5) == 10 );\n\n// Count all\ntemplate\nclass Iterator, class T\n\nauto count(Iterator first, Iterator last)\n{\n    return std::count_if(first, last, always(true));\n}", 
+            "title": "always"
+        }, 
+        {
+            "location": "/always/index.html#always", 
+            "text": "", 
+            "title": "always"
+        }, 
+        {
+            "location": "/always/index.html#header", 
+            "text": "#include  boost/fit/always.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/always/index.html#description", 
+            "text": "The  always  function returns a function object that will always return\nthe value given to it, no matter what parameters are passed to the\nfunction object. The  always_ref  version will return a reference, and it\nrequires the value passed in to be an lvalue.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/always/index.html#synopsis", 
+            "text": "template class T \nconstexpr /* unspecified */ always(T value);\n\ntemplate class T \nconstexpr /* unspecified */ always_ref(T  value);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/always/index.html#semantics", 
+            "text": "assert(always(x)(xs...) == x);", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/always/index.html#requirements", 
+            "text": "T must be:   CopyConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/always/index.html#example", 
+            "text": "int ten = 10;\nassert( always(ten)(1,2,3,4,5) == 10 );\n\n// Count all\ntemplate class Iterator, class T \nauto count(Iterator first, Iterator last)\n{\n    return std::count_if(first, last, always(true));\n}", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/arg/index.html", 
+            "text": "arg\n\n\nHeader\n\n\n#include \nboost/fit/arg.hpp\n\n\n\n\nDescription\n\n\nThe \narg\n returns a function object that returns the Nth argument passed\nto it. It actually starts at 1, so it is not the zero-based index of the\nargument.\n\n\nSynopsis\n\n\ntemplate\nclass IntegralConstant\n\nconstexpr auto arg(IntegralConstant);\n\ntemplate\nstd::size_t N, class... Ts\n\nconstexpr auto arg_c(Ts\n...);\n\n\n\nExample\n\n\nassert(arg(std::integral_constant\nint, 3\n())(1,2,3,4,5) == 3);", 
+            "title": "arg"
+        }, 
+        {
+            "location": "/arg/index.html#arg", 
+            "text": "", 
+            "title": "arg"
+        }, 
+        {
+            "location": "/arg/index.html#header", 
+            "text": "#include  boost/fit/arg.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/arg/index.html#description", 
+            "text": "The  arg  returns a function object that returns the Nth argument passed\nto it. It actually starts at 1, so it is not the zero-based index of the\nargument.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/arg/index.html#synopsis", 
+            "text": "template class IntegralConstant \nconstexpr auto arg(IntegralConstant);\n\ntemplate std::size_t N, class... Ts \nconstexpr auto arg_c(Ts ...);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/arg/index.html#example", 
+            "text": "assert(arg(std::integral_constant int, 3 ())(1,2,3,4,5) == 3);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/construct/index.html", 
+            "text": "construct\n\n\nHeader\n\n\n#include \nboost/fit/construct.hpp\n\n\n\n\nDescription\n\n\nThe \nconstruct\n function returns a function object that will construct the\nobject when the called. A template can also be givien, which it will deduce\nthe parameters to the template. The \nconstruct_meta\n can be used to\nconstruct the object from a metafunction.\n\n\nSynopsis\n\n\ntemplate\nclass T\n\nconstexpr auto construct();\n\ntemplate\ntemplate\nclass...\n class Template\n\nconstexpr auto construct();\n\ntemplate\nclass MetafunctionClass\n\nconstexpr auto construct_meta();\n\ntemplate\ntemplate\nclass...\n class MetafunctionTemplate\n\nconstexpr auto construct_meta();\n\n\n\nSemantics\n\n\nassert(construct\nT\n()(xs...) == T(xs...));\nassert(construct\nTemplate\n()(xs...) == Template\ndecltype(xs)...\n(xs...));\nassert(construct_meta\nMetafunctionClass\n()(xs...) == MetafunctionClass::apply\ndecltype(xs)...\n(xs...));\nassert(construct_meta\nMetafunctionTemplate\n()(xs...) == MetafunctionTemplate\ndecltype(xs)...\n::type(xs...));\n\n\n\nRequirements\n\n\nMetafunctionClass must be a:\n\n\n\n\nMetafunctionClass\n\n\n\n\nMetafunctionTemplate\n must be a:\n\n\n\n\nMetafunction\n\n\n\n\nT, Template\n, MetafunctionClass::apply\n, and\nMetafunctionTemplate\n::type must be:\n\n\n\n\nMoveConstructible\n\n\n\n\nExample\n\n\nauto v = boost::fit::construct\nstd::vector\nint\n()(5, 5);\nassert(v.size() == 5);", 
+            "title": "construct"
+        }, 
+        {
+            "location": "/construct/index.html#construct", 
+            "text": "", 
+            "title": "construct"
+        }, 
+        {
+            "location": "/construct/index.html#header", 
+            "text": "#include  boost/fit/construct.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/construct/index.html#description", 
+            "text": "The  construct  function returns a function object that will construct the\nobject when the called. A template can also be givien, which it will deduce\nthe parameters to the template. The  construct_meta  can be used to\nconstruct the object from a metafunction.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/construct/index.html#synopsis", 
+            "text": "template class T \nconstexpr auto construct();\n\ntemplate template class...  class Template \nconstexpr auto construct();\n\ntemplate class MetafunctionClass \nconstexpr auto construct_meta();\n\ntemplate template class...  class MetafunctionTemplate \nconstexpr auto construct_meta();", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/construct/index.html#semantics", 
+            "text": "assert(construct T ()(xs...) == T(xs...));\nassert(construct Template ()(xs...) == Template decltype(xs)... (xs...));\nassert(construct_meta MetafunctionClass ()(xs...) == MetafunctionClass::apply decltype(xs)... (xs...));\nassert(construct_meta MetafunctionTemplate ()(xs...) == MetafunctionTemplate decltype(xs)... ::type(xs...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/construct/index.html#requirements", 
+            "text": "MetafunctionClass must be a:   MetafunctionClass   MetafunctionTemplate  must be a:   Metafunction   T, Template , MetafunctionClass::apply , and\nMetafunctionTemplate ::type must be:   MoveConstructible", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/construct/index.html#example", 
+            "text": "auto v = boost::fit::construct std::vector int ()(5, 5);\nassert(v.size() == 5);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/decay/index.html", 
+            "text": "decay\n\n\nHeader\n\n\n#include \nboost/fit/decay.hpp\n\n\n\n\nDescription\n\n\nThe \ndecay\n function is a unary function object that returns whats given to it after decaying its type.\n\n\nSynopsis\n\n\nstruct\n{\n    template\nclass T\n\n    constexpr typename decay\nT\n::type operator()(T\n x) const\n    {\n        return boost::fit::forward\nT\n(x);\n    }\n} decay;", 
+            "title": "decay"
+        }, 
+        {
+            "location": "/decay/index.html#decay", 
+            "text": "", 
+            "title": "decay"
+        }, 
+        {
+            "location": "/decay/index.html#header", 
+            "text": "#include  boost/fit/decay.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/decay/index.html#description", 
+            "text": "The  decay  function is a unary function object that returns whats given to it after decaying its type.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/decay/index.html#synopsis", 
+            "text": "struct\n{\n    template class T \n    constexpr typename decay T ::type operator()(T  x) const\n    {\n        return boost::fit::forward T (x);\n    }\n} decay;", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/identity/index.html", 
+            "text": "identity\n\n\nHeader\n\n\n#include \nboost/fit/identity.hpp\n\n\n\n\nDescription\n\n\nThe \nidentity\n function is a unary function object that returns whats given to it. \n\n\nSemantics\n\n\nassert(idenity(x) == x);\n\n\n\nSynopsis\n\n\nstruct\n{\n    template\nclass T\n\n    constexpr T operator()(T\n x) const\n    {\n        return boost::fit::forward\nT\n(x);\n    }\n} identity;", 
+            "title": "identity"
+        }, 
+        {
+            "location": "/identity/index.html#identity", 
+            "text": "", 
+            "title": "identity"
+        }, 
+        {
+            "location": "/identity/index.html#header", 
+            "text": "#include  boost/fit/identity.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/identity/index.html#description", 
+            "text": "The  identity  function is a unary function object that returns whats given to it.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/identity/index.html#semantics", 
+            "text": "assert(idenity(x) == x);", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/identity/index.html#synopsis", 
+            "text": "struct\n{\n    template class T \n    constexpr T operator()(T  x) const\n    {\n        return boost::fit::forward T (x);\n    }\n} identity;", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/placeholders/index.html", 
+            "text": "placeholders\n\n\nHeader\n\n\n#include \nboost/fit/placeholders.hpp\n\n\n\n\nDescription\n\n\nThe placeholders provide \nstd::bind\n compatible placeholders, that\nadditionally provide basic C++ operators that creates bind expressions.\nEach bind expression supports \nconstexpr\n function evaluation.\n\n\nSynopsis\n\n\nplaceholder\n1\n _1 = {};\nplaceholder\n2\n _2 = {};\nplaceholder\n3\n _3 = {};\nplaceholder\n4\n _4 = {};\nplaceholder\n5\n _5 = {};\nplaceholder\n6\n _6 = {};\nplaceholder\n7\n _7 = {};\nplaceholder\n8\n _8 = {};\nplaceholder\n9\n _9 = {};\n\n\n\nOperators\n\n\n\n\nBinary operators: +,-,*,/,%,\n,\n,\n,\n,\n=,\n=,==,!=,\n,^,|,\n,||\n\n\nAssign operators: +=,-=,*=,/=,%=,\n=,\n=,\n=,|=,^=\n\n\nUnary operators: !,~,+,-,*,++,--\n\n\n\n\nExample\n\n\nauto sum = _1 + _2;\nassert(3 == sum(1, 2));\n\n\n\nunamed placeholder\n\n\nHeader\n\n\n#include \nboost/fit/placeholders.hpp\n\n\n\n\nDescription\n\n\nThe unamed placeholder can be used to build simple functions from C++\noperators. \n\n\nNote: The function produced by the unamed placeholder is not a bind expression.\n\n\nSynopsis\n\n\n/* unspecified */ _ = {};\n\n\n\nExample\n\n\nauto sum = _ + _;\nassert(3 == sum(1, 2));", 
+            "title": "placeholders"
+        }, 
+        {
+            "location": "/placeholders/index.html#placeholders", 
+            "text": "", 
+            "title": "placeholders"
+        }, 
+        {
+            "location": "/placeholders/index.html#header", 
+            "text": "#include  boost/fit/placeholders.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/placeholders/index.html#description", 
+            "text": "The placeholders provide  std::bind  compatible placeholders, that\nadditionally provide basic C++ operators that creates bind expressions.\nEach bind expression supports  constexpr  function evaluation.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/placeholders/index.html#synopsis", 
+            "text": "placeholder 1  _1 = {};\nplaceholder 2  _2 = {};\nplaceholder 3  _3 = {};\nplaceholder 4  _4 = {};\nplaceholder 5  _5 = {};\nplaceholder 6  _6 = {};\nplaceholder 7  _7 = {};\nplaceholder 8  _8 = {};\nplaceholder 9  _9 = {};", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/placeholders/index.html#operators", 
+            "text": "Binary operators: +,-,*,/,%, , , , , =, =,==,!=, ,^,|, ,||  Assign operators: +=,-=,*=,/=,%=, =, =, =,|=,^=  Unary operators: !,~,+,-,*,++,--", 
+            "title": "Operators"
+        }, 
+        {
+            "location": "/placeholders/index.html#example", 
+            "text": "auto sum = _1 + _2;\nassert(3 == sum(1, 2));", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/placeholders/index.html#unamed-placeholder", 
+            "text": "", 
+            "title": "unamed placeholder"
+        }, 
+        {
+            "location": "/placeholders/index.html#header_1", 
+            "text": "#include  boost/fit/placeholders.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/placeholders/index.html#description_1", 
+            "text": "The unamed placeholder can be used to build simple functions from C++\noperators.   Note: The function produced by the unamed placeholder is not a bind expression.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/placeholders/index.html#synopsis_1", 
+            "text": "/* unspecified */ _ = {};", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/placeholders/index.html#example_1", 
+            "text": "auto sum = _ + _;\nassert(3 == sum(1, 2));", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/alias/index.html", 
+            "text": "alias\n\n\nHeader\n\n\n#include \nboost/fit/alias.hpp\n\n\n\n\nDescription\n\n\nThe \nalias\n class wraps a type with a new type that can be tagged by the\nuser. There are three different ways the value can be stored: as a member\nvariable, by inheritance, or as a static member variable. The value can\nbe retrieved uniformily using the \nalias_value\n function.\n\n\nSynopsis\n\n\n// Alias the type using a member variable\ntemplate\nclass T, class Tag=void\n\nclass alias;\n\n// Alias the type by inheriting\ntemplate\nclass T, class Tag=void\n\nclass alias_inherit;\n\n// Alias the type using a static variable\ntemplate\nclass T, class Tag=void\n\nclass alias_static;\n\n// Retrieve tag from alias\ntemplate\nclass Alias\n\nclass alias_tag;\n\n// Check if type has a certian tag\ntemplate\nclass T, class Tag\n\nclass has_tag;\n\n// Retrieve value from alias\ntemplate\nclass Alias\n\nconstexpr auto alias_value(Alias\n);", 
+            "title": "alias"
+        }, 
+        {
+            "location": "/alias/index.html#alias", 
+            "text": "", 
+            "title": "alias"
+        }, 
+        {
+            "location": "/alias/index.html#header", 
+            "text": "#include  boost/fit/alias.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/alias/index.html#description", 
+            "text": "The  alias  class wraps a type with a new type that can be tagged by the\nuser. There are three different ways the value can be stored: as a member\nvariable, by inheritance, or as a static member variable. The value can\nbe retrieved uniformily using the  alias_value  function.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/alias/index.html#synopsis", 
+            "text": "// Alias the type using a member variable\ntemplate class T, class Tag=void \nclass alias;\n\n// Alias the type by inheriting\ntemplate class T, class Tag=void \nclass alias_inherit;\n\n// Alias the type using a static variable\ntemplate class T, class Tag=void \nclass alias_static;\n\n// Retrieve tag from alias\ntemplate class Alias \nclass alias_tag;\n\n// Check if type has a certian tag\ntemplate class T, class Tag \nclass has_tag;\n\n// Retrieve value from alias\ntemplate class Alias \nconstexpr auto alias_value(Alias );", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/apply/index.html", 
+            "text": "apply\n\n\nHeader\n\n\n#include \nboost/fit/apply.hpp\n\n\n\n\nDescription\n\n\nThe \napply\n function calls the function given to it with its arguments.\n\n\nSynopsis\n\n\ntemplate\nclass F, class... Ts\n\nconstexpr auto apply(F\n f, Ts\n... xs);\n\n\n\nSemantics\n\n\nassert(apply(f)(xs...) == f(xs...));\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nCallable\n\n\n\n\nExample\n\n\nstruct sum_f\n{\n    template\nclass T, class U\n\n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\nassert(boost::fit::apply(sum_f(), 1, 2) == 3);", 
+            "title": "apply"
+        }, 
+        {
+            "location": "/apply/index.html#apply", 
+            "text": "", 
+            "title": "apply"
+        }, 
+        {
+            "location": "/apply/index.html#header", 
+            "text": "#include  boost/fit/apply.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/apply/index.html#description", 
+            "text": "The  apply  function calls the function given to it with its arguments.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/apply/index.html#synopsis", 
+            "text": "template class F, class... Ts \nconstexpr auto apply(F  f, Ts ... xs);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/apply/index.html#semantics", 
+            "text": "assert(apply(f)(xs...) == f(xs...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/apply/index.html#requirements", 
+            "text": "F must be:   Callable", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/apply/index.html#example", 
+            "text": "struct sum_f\n{\n    template class T, class U \n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\nassert(boost::fit::apply(sum_f(), 1, 2) == 3);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/apply_eval/index.html", 
+            "text": "apply_eval\n\n\nHeader\n\n\n#include \nboost/fit/apply_eval.hpp\n\n\n\n\nDescription\n\n\nThe \napply_eval\n function work like \napply\n, except it calls\n\neval\n on each of its arguments. Each \neval\n call is\nalways ordered from left-to-right.\n\n\nSynopsis\n\n\ntemplate\nclass F, class... Ts\n\nconstexpr auto apply_eval(F\n f, Ts\n... xs);\n\n\n\nSemantics\n\n\nassert(apply_eval(f)(xs...) == f(eval(xs)...));\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nCallable\n\n\n\n\nTs must be:\n\n\n\n\nEvaluatableFunctionObject\n\n\n\n\nExample\n\n\nstruct sum_f\n{\n    template\nclass T, class U\n\n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\nassert(boost::fit::apply_eval(sum_f(), []{ return 1; }, []{ return 2; }) == 3);", 
+            "title": "apply_eval"
+        }, 
+        {
+            "location": "/apply_eval/index.html#apply_eval", 
+            "text": "", 
+            "title": "apply_eval"
+        }, 
+        {
+            "location": "/apply_eval/index.html#header", 
+            "text": "#include  boost/fit/apply_eval.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/apply_eval/index.html#description", 
+            "text": "The  apply_eval  function work like  apply , except it calls eval  on each of its arguments. Each  eval  call is\nalways ordered from left-to-right.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/apply_eval/index.html#synopsis", 
+            "text": "template class F, class... Ts \nconstexpr auto apply_eval(F  f, Ts ... xs);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/apply_eval/index.html#semantics", 
+            "text": "assert(apply_eval(f)(xs...) == f(eval(xs)...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/apply_eval/index.html#requirements", 
+            "text": "F must be:   Callable   Ts must be:   EvaluatableFunctionObject", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/apply_eval/index.html#example", 
+            "text": "struct sum_f\n{\n    template class T, class U \n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\nassert(boost::fit::apply_eval(sum_f(), []{ return 1; }, []{ return 2; }) == 3);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/eval/index.html", 
+            "text": "eval\n\n\nHeader\n\n\n#include \nboost/fit/eval.hpp\n\n\n\n\nDescription\n\n\nThe \neval\n function will evaluate a \"thunk\". This can be either a nullary\nfunction or it can be a unary function that takes the identity function as\nthe first parameter(which is helpful to delay compile-time checking).\nAlso, additional parameters can be passed to \neval\n to delay\ncompiliation(so that result can depend on template parameters).\n\n\nSynopsis\n\n\ntemplate\nclass F, class... Ts\n\nconstexpr auto eval(F\n f, Ts\n...);\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nEvaluatableFunctionObject\n\n\n\n\nExample\n\n\nassert(boost::fit::eval([]{ return 3; }) == 3);", 
+            "title": "eval"
+        }, 
+        {
+            "location": "/eval/index.html#eval", 
+            "text": "", 
+            "title": "eval"
+        }, 
+        {
+            "location": "/eval/index.html#header", 
+            "text": "#include  boost/fit/eval.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/eval/index.html#description", 
+            "text": "The  eval  function will evaluate a \"thunk\". This can be either a nullary\nfunction or it can be a unary function that takes the identity function as\nthe first parameter(which is helpful to delay compile-time checking).\nAlso, additional parameters can be passed to  eval  to delay\ncompiliation(so that result can depend on template parameters).", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/eval/index.html#synopsis", 
+            "text": "template class F, class... Ts \nconstexpr auto eval(F  f, Ts ...);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/eval/index.html#requirements", 
+            "text": "F must be:   EvaluatableFunctionObject", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/eval/index.html#example", 
+            "text": "assert(boost::fit::eval([]{ return 3; }) == 3);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/function/index.html", 
+            "text": "BOOST_FIT_STATIC_FUNCTION\n\n\nHeader\n\n\n#include \nboost/fit/function.hpp\n\n\n\n\nDescription\n\n\nThe \nBOOST_FIT_STATIC_FUNCTION\n macro allows initializing a function object from\na \nconstexpr\n expression. It also ensures that the function object will\nhave a unique address across translation units. This helps to avoid ODR\nviolations. As such, the object that is deduced is default constructed.\n\n\nExample\n\n\nstruct sum_f\n{\n    template\nclass T, class U\n\n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nBOOST_FIT_STATIC_FUNCTION(sum) = sum_f();\nBOOST_FIT_STATIC_FUNCTION(partial_sum) = boost::fit::partial(sum_f());\nassert(sum(1, 2) == partial_sum(1)(2));", 
+            "title": "BOOST_FIT_STATIC_FUNCTION"
+        }, 
+        {
+            "location": "/function/index.html#boost_fit_static_function", 
+            "text": "", 
+            "title": "BOOST_FIT_STATIC_FUNCTION"
+        }, 
+        {
+            "location": "/function/index.html#header", 
+            "text": "#include  boost/fit/function.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/function/index.html#description", 
+            "text": "The  BOOST_FIT_STATIC_FUNCTION  macro allows initializing a function object from\na  constexpr  expression. It also ensures that the function object will\nhave a unique address across translation units. This helps to avoid ODR\nviolations. As such, the object that is deduced is default constructed.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/function/index.html#example", 
+            "text": "struct sum_f\n{\n    template class T, class U \n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nBOOST_FIT_STATIC_FUNCTION(sum) = sum_f();\nBOOST_FIT_STATIC_FUNCTION(partial_sum) = boost::fit::partial(sum_f());\nassert(sum(1, 2) == partial_sum(1)(2));", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/lambda/index.html", 
+            "text": "BOOST_FIT_STATIC_LAMBDA\n\n\nHeader\n\n\n#include \nboost/fit/lambda.hpp\n\n\n\n\nDescription\n\n\nThe \nBOOST_FIT_STATIC_LAMBDA\n macro allows initializing non-capturing lambdas at\ncompile-time in a \nconstexpr\n expression.\n\n\nExample\n\n\nconst constexpr auto add_one = BOOST_FIT_STATIC_LAMBDA(int x)\n{\n    return x + 1;\n};\n\n\n\nBOOST_FIT_STATIC_LAMBDA_FUNCTION\n\n\nHeader\n\n\n#include \nboost/fit/lambda.hpp\n\n\n\n\nDescription\n\n\nThe \nBOOST_FIT_STATIC_LAMBDA_FUNCTION\n macro allows initializing a global\nfunction object that contains non-capturing lambdas. It also ensures that\nthe global function object has a unique address across translation units.\nThis helps prevent possible ODR-violations.\n\n\nExample\n\n\nBOOST_FIT_STATIC_LAMBDA_FUNCTION(add_one) = [](int x)\n{\n    return x + 1;\n};", 
+            "title": "BOOST_FIT_STATIC_LAMBDA"
+        }, 
+        {
+            "location": "/lambda/index.html#boost_fit_static_lambda", 
+            "text": "", 
+            "title": "BOOST_FIT_STATIC_LAMBDA"
+        }, 
+        {
+            "location": "/lambda/index.html#header", 
+            "text": "#include  boost/fit/lambda.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/lambda/index.html#description", 
+            "text": "The  BOOST_FIT_STATIC_LAMBDA  macro allows initializing non-capturing lambdas at\ncompile-time in a  constexpr  expression.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/lambda/index.html#example", 
+            "text": "const constexpr auto add_one = BOOST_FIT_STATIC_LAMBDA(int x)\n{\n    return x + 1;\n};", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/lambda/index.html#boost_fit_static_lambda_function", 
+            "text": "", 
+            "title": "BOOST_FIT_STATIC_LAMBDA_FUNCTION"
+        }, 
+        {
+            "location": "/lambda/index.html#header_1", 
+            "text": "#include  boost/fit/lambda.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/lambda/index.html#description_1", 
+            "text": "The  BOOST_FIT_STATIC_LAMBDA_FUNCTION  macro allows initializing a global\nfunction object that contains non-capturing lambdas. It also ensures that\nthe global function object has a unique address across translation units.\nThis helps prevent possible ODR-violations.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/lambda/index.html#example_1", 
+            "text": "BOOST_FIT_STATIC_LAMBDA_FUNCTION(add_one) = [](int x)\n{\n    return x + 1;\n};", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/lift/index.html", 
+            "text": "lift\n\n\nHeader\n\n\n#include \nboost/fit/lift.hpp\n\n\n\n\nDescription\n\n\nThe \nlift\n operator will wrap a template function in a function object so it\ncan be passed to higher-order functions. The \nBOOST_FIT_LIFT\n macro will wrap the\nfunction using a generic lambda. As such, it will not preserve \nconstexpr\n.\nThe \nBOOST_FIT_LIFT_CLASS\n can be used to declare a class that will wrap function.\nThis will preserve \nconstexpr\n and it can be used on older compilers that\ndon't support generic lambdas yet.\n\n\nSynopsis\n\n\n// Wrap the function in a generic lambda\n#define BOOST_FIT_LIFT(...)\n\n// Declare a class named `name` that will forward to the function\n#define BOOST_FIT_LIFT_CLASS(name, ...)\n\n\n\nExample\n\n\nauto my_max = BOOST_FIT_LIFT(std::max);\nassert(my_max(3, 4) == std::max(3, 4));\n// Declare the class `max_f`\nBOOST_FIT_LIFT_CLASS(max_f, std::max);\nassert(max_f()(3, 4) == std::max(3, 4));", 
+            "title": "lift"
+        }, 
+        {
+            "location": "/lift/index.html#lift", 
+            "text": "", 
+            "title": "lift"
+        }, 
+        {
+            "location": "/lift/index.html#header", 
+            "text": "#include  boost/fit/lift.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/lift/index.html#description", 
+            "text": "The  lift  operator will wrap a template function in a function object so it\ncan be passed to higher-order functions. The  BOOST_FIT_LIFT  macro will wrap the\nfunction using a generic lambda. As such, it will not preserve  constexpr .\nThe  BOOST_FIT_LIFT_CLASS  can be used to declare a class that will wrap function.\nThis will preserve  constexpr  and it can be used on older compilers that\ndon't support generic lambdas yet.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/lift/index.html#synopsis", 
+            "text": "// Wrap the function in a generic lambda\n#define BOOST_FIT_LIFT(...)\n\n// Declare a class named `name` that will forward to the function\n#define BOOST_FIT_LIFT_CLASS(name, ...)", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/lift/index.html#example", 
+            "text": "auto my_max = BOOST_FIT_LIFT(std::max);\nassert(my_max(3, 4) == std::max(3, 4));\n// Declare the class `max_f`\nBOOST_FIT_LIFT_CLASS(max_f, std::max);\nassert(max_f()(3, 4) == std::max(3, 4));", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/is_callable/index.html", 
+            "text": "is_callable\n\n\nHeader\n\n\n#include \nboost/fit/is_callable.hpp\n\n\n\n\nDescription\n\n\nThe \nis_callable\n metafunction checks if the function is callable with\ncertain parameters.\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nCallable\n\n\n\n\nSynopsis\n\n\ntemplate\nclass F, class... Ts\n\nstruct is_callable;\n\n\n\nExample\n\n\nstruct is_callable_class\n{\n    void operator()(int) const\n    {\n    }\n};\nstatic_assert(is_callable\nis_callable_class, int\n(), \"Not callable\");", 
+            "title": "is_callable"
+        }, 
+        {
+            "location": "/is_callable/index.html#is_callable", 
+            "text": "", 
+            "title": "is_callable"
+        }, 
+        {
+            "location": "/is_callable/index.html#header", 
+            "text": "#include  boost/fit/is_callable.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/is_callable/index.html#description", 
+            "text": "The  is_callable  metafunction checks if the function is callable with\ncertain parameters.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/is_callable/index.html#requirements", 
+            "text": "F must be:   Callable", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/is_callable/index.html#synopsis", 
+            "text": "template class F, class... Ts \nstruct is_callable;", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/is_callable/index.html#example", 
+            "text": "struct is_callable_class\n{\n    void operator()(int) const\n    {\n    }\n};\nstatic_assert(is_callable is_callable_class, int (), \"Not callable\");", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/pack/index.html", 
+            "text": "pack\n\n\nHeader\n\n\n#include \nboost/fit/pack.hpp\n\n\n\n\nDescription\n\n\nThe \npack\n function returns a higher order function object that takes a\nfunction that will be passed the initial elements. The function object is\na sequence that can be unpacked with \nunpack_adaptor\n as well. Also,\n\npack_join\n can be used to join multiple packs together.\n\n\nSynopsis\n\n\n// Capture lvalues by reference and rvalues by value.\ntemplate\nclass... Ts\n\nconstexpr auto pack(Ts\n... xs);\n\n// Capture lvalues by reference and rvalue reference by reference\ntemplate\nclass... Ts\n\nconstexpr auto pack_forward(Ts\n... xs);\n\n// Decay everything before capturing\ntemplate\nclass... Ts\n\nconstexpr auto pack_decay(Ts\n... xs);\n\n// Join multiple packs together\ntemplate\nclass... Ts\n\nconstexpr auto pack_join(Ts\n... xs);\n\n\n\nSemantics\n\n\nassert(pack(xs...)(f) == f(xs...));\nassert(unpack(f)(pack(xs...)) == f(xs...));\n\nassert(pack_join(pack(xs...), pack(ys...)) == pack(xs..., ys...));\n\n\n\nExample\n\n\nstruct sum\n{\n    template\nclass T, class U\n\n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nint r = pack(3, 2)(sum());\nassert(r == 5);", 
+            "title": "pack"
+        }, 
+        {
+            "location": "/pack/index.html#pack", 
+            "text": "", 
+            "title": "pack"
+        }, 
+        {
+            "location": "/pack/index.html#header", 
+            "text": "#include  boost/fit/pack.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/pack/index.html#description", 
+            "text": "The  pack  function returns a higher order function object that takes a\nfunction that will be passed the initial elements. The function object is\na sequence that can be unpacked with  unpack_adaptor  as well. Also, pack_join  can be used to join multiple packs together.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/pack/index.html#synopsis", 
+            "text": "// Capture lvalues by reference and rvalues by value.\ntemplate class... Ts \nconstexpr auto pack(Ts ... xs);\n\n// Capture lvalues by reference and rvalue reference by reference\ntemplate class... Ts \nconstexpr auto pack_forward(Ts ... xs);\n\n// Decay everything before capturing\ntemplate class... Ts \nconstexpr auto pack_decay(Ts ... xs);\n\n// Join multiple packs together\ntemplate class... Ts \nconstexpr auto pack_join(Ts ... xs);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/pack/index.html#semantics", 
+            "text": "assert(pack(xs...)(f) == f(xs...));\nassert(unpack(f)(pack(xs...)) == f(xs...));\n\nassert(pack_join(pack(xs...), pack(ys...)) == pack(xs..., ys...));", 
+            "title": "Semantics"
+        }, 
+        {
+            "location": "/pack/index.html#example", 
+            "text": "struct sum\n{\n    template class T, class U \n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nint r = pack(3, 2)(sum());\nassert(r == 5);", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/returns/index.html", 
+            "text": "returns\n\n\nHeader\n\n\n#include \nboost/fit/returns.hpp\n\n\n\n\nDescription\n\n\nThe \nBOOST_FIT_RETURNS\n macro helps deduce the return type of an expression\nusing the trailing return type. Instead of repeating the expression for\nthe return type and using the expression in the function body, this macro\nhelps reduce the code duplication from that.\n\n\nNote: The expression used to deduce the return the type will also\nconstrain the template function as well, which is different behaviour than\nusing C++14's return type deduction.\n\n\nSynopsis\n\n\n#define BOOST_FIT_RETURNS(...)\n\n\n\nExample\n\n\ntemplate\nclass T, class U\n\nauto sum(T x, U y) BOOST_FIT_RETURNS(x+y);\n\nassert(3 == sum(1, 2));\n\n\n\nIncomplete this\n\n\nHeader\n\n\n#include \nboost/fit/returns.hpp\n\n\n\n\nDescription\n\n\nOn older compilers the \nthis\n variable cannot be used inside the\n\nBOOST_FIT_RETURNS\n macro because it is considered an incomplete type. So the\nfollowing macros are provided to help workaround the issue.\n\n\nSynopsis\n\n\n// Declares the type of the `this` variable\n#define BOOST_FIT_RETURNS_CLASS(...) \n// Used to refer to the `this` variable in the BOOST_FIT_RETURNS macro\n#define BOOST_FIT_THIS\n// Used to refer to the const `this` variable in the BOOST_FIT_RETURNS macro\n#define BOOST_FIT_CONST_THIS\n\n\n\nExample\n\n\nstruct add_1\n{\n    int a;\n    add_1() : a(1) {}\n\n    BOOST_FIT_RETURNS_CLASS(add_1)\n\n    template\nclass T\n\n    auto operator()(T x) const \n    BOOST_FIT_RETURNS(x+BOOST_FIT_CONST_THIS-\na);\n};\n\nassert(3 == add_1()(2));\n\n\n\nMangling overloads\n\n\nHeader\n\n\n#include \nboost/fit/returns.hpp\n\n\n\n\nDescription\n\n\nOn older compilers some operations done in the expressions cannot be\nproperly mangled. These macros help provide workarounds for these\noperations on older compilers.\n\n\nSynopsis\n\n\n// Explicitly defines the type for name mangling\n#define BOOST_FIT_MANGLE_CAST(...) \n// C cast for name mangling\n#define BOOST_FIT_RETURNS_C_CAST(...) \n// Reinterpret cast for name mangling\n#define BOOST_FIT_RETURNS_REINTERPRET_CAST(...) \n// Static cast for name mangling\n#define BOOST_FIT_RETURNS_STATIC_CAST(...) \n// Construction for name mangling\n#define BOOST_FIT_RETURNS_CONSTRUCT(...)", 
+            "title": "returns"
+        }, 
+        {
+            "location": "/returns/index.html#returns", 
+            "text": "", 
+            "title": "returns"
+        }, 
+        {
+            "location": "/returns/index.html#header", 
+            "text": "#include  boost/fit/returns.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/returns/index.html#description", 
+            "text": "The  BOOST_FIT_RETURNS  macro helps deduce the return type of an expression\nusing the trailing return type. Instead of repeating the expression for\nthe return type and using the expression in the function body, this macro\nhelps reduce the code duplication from that.  Note: The expression used to deduce the return the type will also\nconstrain the template function as well, which is different behaviour than\nusing C++14's return type deduction.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/returns/index.html#synopsis", 
+            "text": "#define BOOST_FIT_RETURNS(...)", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/returns/index.html#example", 
+            "text": "template class T, class U \nauto sum(T x, U y) BOOST_FIT_RETURNS(x+y);\n\nassert(3 == sum(1, 2));", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/returns/index.html#incomplete-this", 
+            "text": "", 
+            "title": "Incomplete this"
+        }, 
+        {
+            "location": "/returns/index.html#header_1", 
+            "text": "#include  boost/fit/returns.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/returns/index.html#description_1", 
+            "text": "On older compilers the  this  variable cannot be used inside the BOOST_FIT_RETURNS  macro because it is considered an incomplete type. So the\nfollowing macros are provided to help workaround the issue.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/returns/index.html#synopsis_1", 
+            "text": "// Declares the type of the `this` variable\n#define BOOST_FIT_RETURNS_CLASS(...) \n// Used to refer to the `this` variable in the BOOST_FIT_RETURNS macro\n#define BOOST_FIT_THIS\n// Used to refer to the const `this` variable in the BOOST_FIT_RETURNS macro\n#define BOOST_FIT_CONST_THIS", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/returns/index.html#example_1", 
+            "text": "struct add_1\n{\n    int a;\n    add_1() : a(1) {}\n\n    BOOST_FIT_RETURNS_CLASS(add_1)\n\n    template class T \n    auto operator()(T x) const \n    BOOST_FIT_RETURNS(x+BOOST_FIT_CONST_THIS- a);\n};\n\nassert(3 == add_1()(2));", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/returns/index.html#mangling-overloads", 
+            "text": "", 
+            "title": "Mangling overloads"
+        }, 
+        {
+            "location": "/returns/index.html#header_2", 
+            "text": "#include  boost/fit/returns.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/returns/index.html#description_2", 
+            "text": "On older compilers some operations done in the expressions cannot be\nproperly mangled. These macros help provide workarounds for these\noperations on older compilers.", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/returns/index.html#synopsis_2", 
+            "text": "// Explicitly defines the type for name mangling\n#define BOOST_FIT_MANGLE_CAST(...) \n// C cast for name mangling\n#define BOOST_FIT_RETURNS_C_CAST(...) \n// Reinterpret cast for name mangling\n#define BOOST_FIT_RETURNS_REINTERPRET_CAST(...) \n// Static cast for name mangling\n#define BOOST_FIT_RETURNS_STATIC_CAST(...) \n// Construction for name mangling\n#define BOOST_FIT_RETURNS_CONSTRUCT(...)", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/tap/index.html", 
+            "text": "tap\n\n\nHeader\n\n\n#include \nboost/fit/tap.hpp\n\n\n\n\nDescription\n\n\nThe \ntap\n function invokes a function on the first argument passed in and\nthen returns the first argument. This is useful in a chain of pipable\nfunction to perform operations on intermediate results. As a result, this\nfunction is \npipable\n.\n\n\nSynopsis\n\n\ntemplate\nclass T, class F\n\npipable constexpr T tap(T\n x, const F\n f);\n\n\n\nRequirements\n\n\nF must be:\n\n\n\n\nUnaryCallable\n\n\n\n\nExample\n\n\nstruct sum_f\n{\n    template\nclass T, class U\n\n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nconst pipable\nsum_f\n sum = {};\n// Prints 3\nint r = 1 | sum(2) | tap([](int i) { std::cout \n i; }) | sum(2);\nassert(r == 5);", 
+            "title": "tap"
+        }, 
+        {
+            "location": "/tap/index.html#tap", 
+            "text": "", 
+            "title": "tap"
+        }, 
+        {
+            "location": "/tap/index.html#header", 
+            "text": "#include  boost/fit/tap.hpp", 
+            "title": "Header"
+        }, 
+        {
+            "location": "/tap/index.html#description", 
+            "text": "The  tap  function invokes a function on the first argument passed in and\nthen returns the first argument. This is useful in a chain of pipable\nfunction to perform operations on intermediate results. As a result, this\nfunction is  pipable .", 
+            "title": "Description"
+        }, 
+        {
+            "location": "/tap/index.html#synopsis", 
+            "text": "template class T, class F \npipable constexpr T tap(T  x, const F  f);", 
+            "title": "Synopsis"
+        }, 
+        {
+            "location": "/tap/index.html#requirements", 
+            "text": "F must be:   UnaryCallable", 
+            "title": "Requirements"
+        }, 
+        {
+            "location": "/tap/index.html#example", 
+            "text": "struct sum_f\n{\n    template class T, class U \n    T operator()(T x, U y) const\n    {\n        return x+y;\n    }\n};\n\nconst pipable sum_f  sum = {};\n// Prints 3\nint r = 1 | sum(2) | tap([](int i) { std::cout   i; }) | sum(2);\nassert(r == 5);", 
+            "title": "Example"
+        }
+    ]
+}

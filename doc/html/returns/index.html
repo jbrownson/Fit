@@ -1,0 +1,171 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+
+<meta name="author" content="Paul Fultz II">
+
+<title>returns - Boost.Fit</title>
+<link href="../css/boostbook.css" rel="stylesheet">
+<link href="../css/styles/github.css" rel="stylesheet">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../images/boost.png"></td>
+</tr></table>
+
+<hr>
+<div class="spirit-nav">
+<a accesskey="p"  href="../pack/index.html"><img src="../images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../images/home.png" alt="Home"></a><a accesskey="n"  href="../tap/index.html"><img src="../images/next.png" alt="Next"></a>
+</div>
+
+<div class="chapter">
+
+
+<div class="toc">
+<dl class="toc">
+
+    
+        <dt><span class="section"><a href="#returns">returns</a></span></dt>
+        <dd><dl>
+            
+                <dt><span class="section"><a href="#header">Header</a></span></dt>
+            
+                <dt><span class="section"><a href="#description">Description</a></span></dt>
+            
+                <dt><span class="section"><a href="#synopsis">Synopsis</a></span></dt>
+            
+                <dt><span class="section"><a href="#example">Example</a></span></dt>
+            
+        </dl></dd>
+    
+
+    
+        <dt><span class="section"><a href="#incomplete-this">Incomplete this</a></span></dt>
+        <dd><dl>
+            
+                <dt><span class="section"><a href="#header_1">Header</a></span></dt>
+            
+                <dt><span class="section"><a href="#description_1">Description</a></span></dt>
+            
+                <dt><span class="section"><a href="#synopsis_1">Synopsis</a></span></dt>
+            
+                <dt><span class="section"><a href="#example_1">Example</a></span></dt>
+            
+        </dl></dd>
+    
+
+    
+        <dt><span class="section"><a href="#mangling-overloads">Mangling overloads</a></span></dt>
+        <dd><dl>
+            
+                <dt><span class="section"><a href="#header_2">Header</a></span></dt>
+            
+                <dt><span class="section"><a href="#description_2">Description</a></span></dt>
+            
+                <dt><span class="section"><a href="#synopsis_2">Synopsis</a></span></dt>
+            
+        </dl></dd>
+    
+
+</dl>
+</div>
+
+
+
+<div class="section">
+<h1 id="returns">returns</h1>
+<h2 id="header">Header</h2>
+<pre><code>#include &lt;boost/fit/returns.hpp&gt;
+</code></pre>
+<h2 id="description">Description</h2>
+<p>The <code>BOOST_FIT_RETURNS</code> macro helps deduce the return type of an expression
+using the trailing return type. Instead of repeating the expression for
+the return type and using the expression in the function body, this macro
+helps reduce the code duplication from that.</p>
+<p>Note: The expression used to deduce the return the type will also
+constrain the template function as well, which is different behaviour than
+using C++14's return type deduction.</p>
+<h2 id="synopsis">Synopsis</h2>
+<pre><code>#define BOOST_FIT_RETURNS(...)
+</code></pre>
+<h2 id="example">Example</h2>
+<pre><code>template&lt;class T, class U&gt;
+auto sum(T x, U y) BOOST_FIT_RETURNS(x+y);
+
+assert(3 == sum(1, 2));
+</code></pre>
+<h1 id="incomplete-this">Incomplete this</h1>
+<h2 id="header_1">Header</h2>
+<pre><code>#include &lt;boost/fit/returns.hpp&gt;
+</code></pre>
+<h2 id="description_1">Description</h2>
+<p>On older compilers the <code>this</code> variable cannot be used inside the
+<code>BOOST_FIT_RETURNS</code> macro because it is considered an incomplete type. So the
+following macros are provided to help workaround the issue.</p>
+<h2 id="synopsis_1">Synopsis</h2>
+<pre><code>// Declares the type of the `this` variable
+#define BOOST_FIT_RETURNS_CLASS(...) 
+// Used to refer to the `this` variable in the BOOST_FIT_RETURNS macro
+#define BOOST_FIT_THIS
+// Used to refer to the const `this` variable in the BOOST_FIT_RETURNS macro
+#define BOOST_FIT_CONST_THIS
+</code></pre>
+<h2 id="example_1">Example</h2>
+<pre><code>struct add_1
+{
+    int a;
+    add_1() : a(1) {}
+
+    BOOST_FIT_RETURNS_CLASS(add_1)
+
+    template&lt;class T&gt;
+    auto operator()(T x) const 
+    BOOST_FIT_RETURNS(x+BOOST_FIT_CONST_THIS-&gt;a);
+};
+
+assert(3 == add_1()(2));
+</code></pre>
+<h1 id="mangling-overloads">Mangling overloads</h1>
+<h2 id="header_2">Header</h2>
+<pre><code>#include &lt;boost/fit/returns.hpp&gt;
+</code></pre>
+<h2 id="description_2">Description</h2>
+<p>On older compilers some operations done in the expressions cannot be
+properly mangled. These macros help provide workarounds for these
+operations on older compilers.</p>
+<h2 id="synopsis_2">Synopsis</h2>
+<pre><code>// Explicitly defines the type for name mangling
+#define BOOST_FIT_MANGLE_CAST(...) 
+// C cast for name mangling
+#define BOOST_FIT_RETURNS_C_CAST(...) 
+// Reinterpret cast for name mangling
+#define BOOST_FIT_RETURNS_REINTERPRET_CAST(...) 
+// Static cast for name mangling
+#define BOOST_FIT_RETURNS_STATIC_CAST(...) 
+// Construction for name mangling
+#define BOOST_FIT_RETURNS_CONSTRUCT(...)
+</code></pre>
+</div>
+
+<script src="../js/highlight.pack.js"></script>
+<script>
+hljs.configure({languages:['cpp']});
+hljs.initHighlightingOnLoad();
+</script>
+<script src="../js/configure.js"></script>
+
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2014 Paul Fultz II
+      <p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+
+</div>
+</body>
+</html>

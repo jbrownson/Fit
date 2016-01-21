@@ -1,0 +1,439 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+
+<meta name="author" content="Paul Fultz II">
+
+<title>Basic Concepts - Boost.Fit</title>
+<link href="../css/boostbook.css" rel="stylesheet">
+<link href="../css/styles/github.css" rel="stylesheet">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../images/boost.png"></td>
+</tr></table>
+
+<hr>
+<div class="spirit-nav">
+<a accesskey="p"  href="../overview/index.html"><img src="../images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../images/home.png" alt="Home"></a><a accesskey="n"  href="../requirements/index.html"><img src="../images/next.png" alt="Next"></a>
+</div>
+
+<div class="chapter">
+
+
+<div class="toc">
+<dl class="toc">
+
+    
+        <dt><span class="section"><a href="#basic-concepts">Basic Concepts</a></span></dt>
+        <dd><dl>
+            
+                <dt><span class="section"><a href="#functionobject">FunctionObject</a></span></dt>
+            
+                <dt><span class="section"><a href="#nullaryfunctionobject">NullaryFunctionObject</a></span></dt>
+            
+                <dt><span class="section"><a href="#unaryfunctionobject">UnaryFunctionObject</a></span></dt>
+            
+                <dt><span class="section"><a href="#binaryfunctionobject">BinaryFunctionObject</a></span></dt>
+            
+                <dt><span class="section"><a href="#mutablefunctionobject">MutableFunctionObject</a></span></dt>
+            
+                <dt><span class="section"><a href="#evaluatablefunctionobject">EvaluatableFunctionObject</a></span></dt>
+            
+                <dt><span class="section"><a href="#callable">Callable</a></span></dt>
+            
+                <dt><span class="section"><a href="#unarycallable">UnaryCallable</a></span></dt>
+            
+                <dt><span class="section"><a href="#binarycallable">BinaryCallable</a></span></dt>
+            
+                <dt><span class="section"><a href="#metafunction">Metafunction</a></span></dt>
+            
+                <dt><span class="section"><a href="#metafunctionclass">MetafunctionClass</a></span></dt>
+            
+        </dl></dd>
+    
+
+</dl>
+</div>
+
+
+
+<div class="section">
+<h1 id="basic-concepts">Basic Concepts</h1>
+<h2 id="functionobject">FunctionObject</h2>
+<p>Is an object with a <code>const</code> call operator:</p>
+<pre><code class="cpp">concept FunctionObject
+{
+    template&lt;class... Ts&gt;
+    auto operator()(Ts&amp;&amp;...) const;
+};
+</code></pre>
+
+<h4 id="requirements">Requirements:</h4>
+<p>The type <code>F</code> satisfies <code>FunctionObject</code> if</p>
+<ul>
+<li>The type <code>F</code> satisfies <code>std::is_object</code>, and </li>
+</ul>
+<p>Given</p>
+<ul>
+<li><code>f</code>, an object of type <code>const F</code></li>
+<li><code>args...</code>, suitable argument list, which may be empty </li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>f(args...)</code></td>
+<td>performs a function call</td>
+</tr>
+</tbody>
+</table>
+<h2 id="nullaryfunctionobject">NullaryFunctionObject</h2>
+<p>Is an object with a <code>const</code> call operator that accepts no parameters:</p>
+<pre><code class="cpp">concept NullaryFunctionObject
+{
+    auto operator()() const;
+};
+</code></pre>
+
+<h4 id="requirements_1">Requirements:</h4>
+<ul>
+<li><code>FunctionObject</code></li>
+</ul>
+<p>Given</p>
+<ul>
+<li><code>f</code>, an object of type <code>const F</code></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>f()</code></td>
+<td>performs a function call</td>
+</tr>
+</tbody>
+</table>
+<h2 id="unaryfunctionobject">UnaryFunctionObject</h2>
+<p>Is an object with a <code>const</code> call operator that accepts one parameter:</p>
+<pre><code class="cpp">concept UnaryFunctionObject
+{
+    template&lt;class T&gt;
+    auto operator()(T&amp;&amp;) const;
+};
+</code></pre>
+
+<h4 id="requirements_2">Requirements:</h4>
+<ul>
+<li><code>FunctionObject</code></li>
+</ul>
+<p>Given</p>
+<ul>
+<li><code>f</code>, an object of type <code>const F</code></li>
+<li><code>arg</code>, a single argument</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>f(arg)</code></td>
+<td>performs a function call</td>
+</tr>
+</tbody>
+</table>
+<h2 id="binaryfunctionobject">BinaryFunctionObject</h2>
+<p>Is an object with a <code>const</code> call operator that accepts two parameter:</p>
+<pre><code class="cpp">concept UnaryFunctionObject
+{
+    template&lt;class T, class U&gt;
+    auto operator()(T&amp;&amp;, U&amp;&amp;) const;
+};
+</code></pre>
+
+<h4 id="requirements_3">Requirements:</h4>
+<ul>
+<li><code>FunctionObject</code></li>
+</ul>
+<p>Given</p>
+<ul>
+<li><code>f</code>, an object of type <code>const F</code></li>
+<li><code>arg1</code>, a single argument</li>
+<li><code>arg2</code>, a single argument</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>f(arg1, arg2)</code></td>
+<td>performs a function call</td>
+</tr>
+</tbody>
+</table>
+<h2 id="mutablefunctionobject">MutableFunctionObject</h2>
+<p>Is an object with a <code>mutable</code> call operator:</p>
+<pre><code class="cpp">concept FunctionObject
+{
+    template&lt;class... Ts&gt;
+    auto operator()(Ts&amp;&amp;...);
+};
+</code></pre>
+
+<h4 id="requirements_4">Requirements:</h4>
+<p>The type <code>F</code> satisfies <code>FunctionObject</code> if</p>
+<ul>
+<li>The type <code>F</code> satisfies <code>std::is_object</code>, and </li>
+</ul>
+<p>Given</p>
+<ul>
+<li><code>f</code>, an object of type <code>F</code></li>
+<li><code>args...</code>, suitable argument list, which may be empty </li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>f(args...)</code></td>
+<td>performs a function call</td>
+</tr>
+</tbody>
+</table>
+<h2 id="evaluatablefunctionobject">EvaluatableFunctionObject</h2>
+<p>Is an object that is either a <code>NullaryFunctionObject</code>, or it is an <code>UnaryFuntionObject</code> that accepts the <code>identity</code> function as a parameter.</p>
+<h4 id="requirements_5">Requirements:</h4>
+<ul>
+<li><code>NullaryFunctionObject</code></li>
+</ul>
+<p>Given</p>
+<ul>
+<li><code>f</code>, an object of type <code>const F</code></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>f()</code></td>
+<td>performs a function call</td>
+</tr>
+</tbody>
+</table>
+<p>Or:</p>
+<ul>
+<li><code>UnaryFuntionObject</code></li>
+</ul>
+<p>Given</p>
+<ul>
+<li><code>f</code>, an object of type <code>const F</code></li>
+<li><code>identity</code>, which is the identity function</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>f(identity)</code></td>
+<td>performs a function call</td>
+</tr>
+</tbody>
+</table>
+<h2 id="callable">Callable</h2>
+<p>Is an object for which the <code>INVOKE</code> operation can be applied.</p>
+<h4 id="requirements_6">Requirements:</h4>
+<p>The type <code>T</code> satisfies <code>Callable</code> if</p>
+<p>Given</p>
+<ul>
+<li><code>f</code>, an object of type <code>const T</code></li>
+<li><code>Args...</code>, suitable list of argument types</li>
+</ul>
+<p>The following expressions must be valid: </p>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INVOKE(f, std::declval&lt;Args&gt;()...)</code></td>
+<td>the expression is well-formed in unevaluated context</td>
+</tr>
+</tbody>
+</table>
+<p>where <code>INVOKE(f, x, xs...)</code> is defined as follows:</p>
+<ul>
+<li>
+<p>if <code>f</code> is a pointer to member function of class <code>T</code>: </p>
+<ul>
+<li>If <code>std::is_base_of&lt;T, std::decay_t&lt;decltype(x)&gt;&gt;()</code> is true, then <code>INVOKE(f, x, xs...)</code> is equivalent to <code>(x.*f)(xs...)</code></li>
+<li>otherwise, if <code>std::decay_t&lt;decltype(x)&gt;</code> is a specialization of <code>std::reference_wrapper</code>, then <code>INVOKE(f, x, xs...)</code> is equivalent to <code>(x.get().*f)(xs...)</code> </li>
+<li>otherwise, if x does not satisfy the previous items, then <code>INVOKE(f, x, xs...)</code> is equivalent to <code>((*x).*f)(xs...)</code>. </li>
+</ul>
+</li>
+<li>
+<p>otherwise, if <code>f</code> is a pointer to data member of class <code>T</code>: </p>
+<ul>
+<li>If <code>std::is_base_of&lt;T, std::decay_t&lt;decltype(x)&gt;&gt;()</code> is true, then <code>INVOKE(f, x)</code> is equivalent to <code>x.*f</code></li>
+<li>otherwise, if <code>std::decay_t&lt;decltype(x)&gt;</code> is a specialization of <code>std::reference_wrapper</code>, then <code>INVOKE(f, x)</code> is equivalent to <code>x.get().*f</code></li>
+<li>otherwise, if <code>x</code> does not satisfy the previous items, then <code>INVOKE(f, x)</code> is equivalent to <code>(*x).*f</code></li>
+</ul>
+</li>
+<li>
+<p>otherwise, <code>INVOKE(f, x, xs...)</code> is equivalent to <code>f(x, xs...)</code></p>
+</li>
+</ul>
+<h2 id="unarycallable">UnaryCallable</h2>
+<p>Is an object for which the <code>INVOKE</code> operation can be applied with one parameter.</p>
+<h4 id="requirements_7">Requirements:</h4>
+<ul>
+<li><code>Callable</code></li>
+</ul>
+<p>Given</p>
+<ul>
+<li><code>f</code>, an object of type <code>const F</code></li>
+<li><code>arg</code>, a single argument</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INVOKE(f, arg)</code></td>
+<td>the expression is well-formed in unevaluated context</td>
+</tr>
+</tbody>
+</table>
+<h2 id="binarycallable">BinaryCallable</h2>
+<p>Is an object for which the <code>INVOKE</code> operation can be applied with two parameters.</p>
+<h4 id="requirements_8">Requirements:</h4>
+<ul>
+<li><code>Callable</code></li>
+</ul>
+<p>Given</p>
+<ul>
+<li><code>f</code>, an object of type <code>const F</code></li>
+<li><code>arg1</code>, a single argument</li>
+<li><code>arg2</code>, a single argument</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INVOKE(f, arg1, arg2)</code></td>
+<td>the expression is well-formed in unevaluated context</td>
+</tr>
+</tbody>
+</table>
+<h2 id="metafunction">Metafunction</h2>
+<p>Given</p>
+<ul>
+<li><code>f</code>, a metafunction</li>
+<li><code>args...</code>, any suitable type, which may be empty</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>f::type</code></td>
+<td>The type is the result of the metafunction</td>
+</tr>
+<tr>
+<td><code>f&lt;args...&gt;::type</code></td>
+<td>The type is the result of the metafunction</td>
+</tr>
+</tbody>
+</table>
+<h2 id="metafunctionclass">MetafunctionClass</h2>
+<p>Given</p>
+<ul>
+<li><code>f</code>, is a metafunction class</li>
+<li><code>args...</code>, any suitable type, which may be empty</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>f::apply::type</code></td>
+<td>The type is the result of the metafunction</td>
+</tr>
+<tr>
+<td><code>f::apply&lt;args...&gt;::type</code></td>
+<td>The type is the result of the metafunction</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<script src="../js/highlight.pack.js"></script>
+<script>
+hljs.configure({languages:['cpp']});
+hljs.initHighlightingOnLoad();
+</script>
+<script src="../js/configure.js"></script>
+
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2014 Paul Fultz II
+      <p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+
+</div>
+</body>
+</html>
