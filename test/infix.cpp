@@ -1,4 +1,4 @@
-#include <fit/infix.hpp>
+#include <boost/fit/infix.hpp>
 #include "test.hpp"
 
 struct sum_f
@@ -10,10 +10,10 @@ struct sum_f
     }
 };
 
-static constexpr fit::infix_adaptor<sum_f> sum = {};
+static constexpr boost::fit::infix_adaptor<sum_f> sum = {};
 
-FIT_TEST_CASE()
+BOOST_FIT_TEST_CASE()
 {
-    FIT_TEST_CHECK(3 == (1 <sum> 2));
-    FIT_STATIC_TEST_CHECK(3 == (1 <sum> 2));
+    BOOST_FIT_TEST_CHECK(3 == (1 <sum> 2));
+    BOOST_FIT_STATIC_TEST_CHECK(3 == (1 <sum> 2));
 }

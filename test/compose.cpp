@@ -1,4 +1,4 @@
-#include <fit/compose.hpp>
+#include <boost/fit/compose.hpp>
 #include <memory>
 #include "test.hpp"
 
@@ -56,45 +56,45 @@ struct decrement_movable
     }
 };
 
-FIT_TEST_CASE()
+BOOST_FIT_TEST_CASE()
 {
-    int r = fit::compose(increment(), decrement(), increment())(3);
-    FIT_TEST_CHECK(r == 4);
-    FIT_STATIC_TEST_CHECK(fit::compose(increment(), decrement(), increment())(3) == 4);
+    int r = boost::fit::compose(increment(), decrement(), increment())(3);
+    BOOST_FIT_TEST_CHECK(r == 4);
+    BOOST_FIT_STATIC_TEST_CHECK(boost::fit::compose(increment(), decrement(), increment())(3) == 4);
 }
 
-FIT_TEST_CASE()
+BOOST_FIT_TEST_CASE()
 {
-    int r = fit::compose(increment(), negate(), decrement(), decrement())(3);
-    FIT_TEST_CHECK(r == 0);
-    FIT_STATIC_TEST_CHECK(fit::compose(increment(), negate(), decrement(), decrement())(3) == 0);
+    int r = boost::fit::compose(increment(), negate(), decrement(), decrement())(3);
+    BOOST_FIT_TEST_CHECK(r == 0);
+    BOOST_FIT_STATIC_TEST_CHECK(boost::fit::compose(increment(), negate(), decrement(), decrement())(3) == 0);
 }
 #ifndef _MSC_VER
-FIT_TEST_CASE()
+BOOST_FIT_TEST_CASE()
 {
-    constexpr auto f = fit::compose(increment(), decrement());
+    constexpr auto f = boost::fit::compose(increment(), decrement());
     static_assert(std::is_empty<decltype(f)>::value, "Compose function not empty");
     int r = f(3);
-    FIT_TEST_CHECK(r == 3);
-    FIT_STATIC_TEST_CHECK(f(3) == 3);
+    BOOST_FIT_TEST_CHECK(r == 3);
+    BOOST_FIT_STATIC_TEST_CHECK(f(3) == 3);
 }
 #endif
 
-FIT_TEST_CASE()
+BOOST_FIT_TEST_CASE()
 {
     STATIC_ASSERT_MOVE_ONLY(increment_movable);
     STATIC_ASSERT_MOVE_ONLY(decrement_movable);
-    int r = fit::compose(increment_movable(), decrement_movable(), increment_movable())(3);
-    FIT_TEST_CHECK(r == 4);
+    int r = boost::fit::compose(increment_movable(), decrement_movable(), increment_movable())(3);
+    BOOST_FIT_TEST_CHECK(r == 4);
 }
 
-FIT_TEST_CASE()
+BOOST_FIT_TEST_CASE()
 {
-    const auto f = fit::compose([](int i) { return i+1; }, [](int i) { return i-1; }, [](int i) { return i+1; });
+    const auto f = boost::fit::compose([](int i) { return i+1; }, [](int i) { return i-1; }, [](int i) { return i+1; });
 #ifndef _MSC_VER
     static_assert(std::is_empty<decltype(f)>::value, "Compose function not empty");
 #endif
     int r = f(3);
-    FIT_TEST_CHECK(r == 4);
+    BOOST_FIT_TEST_CHECK(r == 4);
 }
 }

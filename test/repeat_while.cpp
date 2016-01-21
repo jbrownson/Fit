@@ -1,4 +1,4 @@
-#include <fit/repeat_while.hpp>
+#include <boost/fit/repeat_while.hpp>
 #include "test.hpp"
 
 // TODO: Test default construction, and static initialization
@@ -22,17 +22,17 @@ struct not_6
     }
 };
 
-FIT_TEST_CASE()
+BOOST_FIT_TEST_CASE()
 {
     static_assert
     (
         std::is_same<
             std::integral_constant<int, 6>, 
-            decltype(fit::repeat_while(not_6())(increment())(std::integral_constant<int, 1>()))
+            decltype(boost::fit::repeat_while(not_6())(increment())(std::integral_constant<int, 1>()))
         >::value,
         "Error"
     );
 
-    std::integral_constant<int, 6> x = fit::repeat_while(not_6())(increment())(std::integral_constant<int, 1>());
-    fit::test::unused(x);
+    std::integral_constant<int, 6> x = boost::fit::repeat_while(not_6())(increment())(std::integral_constant<int, 1>());
+    boost::fit::test::unused(x);
 }

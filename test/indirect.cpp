@@ -1,8 +1,8 @@
-#include <fit/indirect.hpp>
+#include <boost/fit/indirect.hpp>
 #include "test.hpp"
 
-FIT_TEST_CASE()
+BOOST_FIT_TEST_CASE()
 {
-    FIT_TEST_CHECK(3 == fit::indirect(std::unique_ptr<binary_class>(new binary_class()))(1, 2));
-    FIT_TEST_CHECK(3 == fit::reveal(fit::indirect(std::unique_ptr<binary_class>(new binary_class())))(1, 2));
+    BOOST_FIT_TEST_CHECK(3 == boost::fit::indirect(std::unique_ptr<binary_class>(new binary_class()))(1, 2));
+    BOOST_FIT_TEST_CHECK(3 == boost::fit::reveal(boost::fit::indirect(std::unique_ptr<binary_class>(new binary_class())))(1, 2));
 }
